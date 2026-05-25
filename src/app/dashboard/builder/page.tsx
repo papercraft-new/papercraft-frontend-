@@ -1,0 +1,1415 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { usePaperStore } from '@/store/paperStore';
+import { papersApi } from '@/lib/api';
+import { PaperPreview } from '@/components/preview/PaperPreview';
+import { ExamDetailsModal } from '@/components/builder/ExamDetailsModal';
+import { AddQuestionModal } from '@/components/builder/AddQuestionModal';
+import toast from 'react-hot-toast';
+import type { Section, Question } from '@/store/paperStore';
+
+// ─────────────────────────────────────────
+// STEP DEFINITIONS
+// ─────────────────────────────────────────
+
+type StepId = 'upload' | 'edit' | 'details' | 'preview' | 'save';
+
+const STEPS: { id: StepId; label: string; icon: string }[] = [
+  { id: 'upload', label: 'Upload & Extract', icon: '📤' },
+  { id: 'edit', label: 'Edit Questions', icon: '✏️' },
+  { id: 'details', label: 'Exam Details', icon: '⚙️' },
+  { id: 'preview', label: 'Preview', icon: '👁' },
+  { id: 'save', label: 'Save', icon: '💾' },
+];
+
+// ─────────────────────────────────────────
+// MCQ HELPERS
+// ─────────────────────────────────────────
+
+type MCQOption = { label: string; text: string; isCorrect: boolean };
+
+function splitOptions(text: string): { questionText: string; options: MCQOption[] } {
+  const options: MCQOption[] = [];
+  if (!text?.trim()) return { questionText: '', options: [] };
+  const normalizedText = text.replace(/\s+/g, ' ').trim();
+  const p1 = /\(([abcdABCD])\)\s*(.*?)(?=\s*\([abcdABCD]\)\s*|\s*$)/gi;
+  const p2 = /\b([abcdABCD])\)\s*(.*?)(?=\s+[abcdABCD]\)\s*|\s*$)/g;
+  const p3 = /\b([ABCD])\.\s*(.*?)(?=\s+[ABCD]\.\s*|\s*$)/g;
+  let matches: RegExpMatchArray[] = [];
+  let usedPattern = 0;
+  matches = [...normalizedText.matchAll(p1)];
+  if (matches.length >= 2) usedPattern = 1;
+  if (matches.length < 2) {
+    matches = [...normalizedText.matchAll(p2)];
+    if (matches.length >= 2) usedPattern = 2;
+  }
+  if (matches.length < 2) {
+    matches = [...normalizedText.matchAll(p3)];
+    if (matches.length >= 2) usedPattern = 3;
+  }
+  if (matches.length < 2) return { questionText: text.trim(), options: [] };
+  for (const m of matches) {
+    const label = m[1].toLowerCase();
+    const optText = m[2]
+      .trim()
+      .replace(/\s*\([abcdABCD]\)\s*$/, '')
+      .replace(/\s+[abcdABCD]\)\s*$/, '')
+      .replace(/\s+[ABCD]\.\s*$/, '')
+      .trim();
+    if (!options.find(o => o.label === label) && optText) {
+      options.push({ label, text: optText, isCorrect: false });
+    }
+  }
+  let questionText = normalizedText;
+  if (usedPattern === 1) {
+    const idx = normalizedText.search(/\s*\([abcdABCD]\)/i);
+    if (idx > 0) questionText = normalizedText.substring(0, idx).trim();
+  } else if (usedPattern === 2) {
+    const idx = normalizedText.search(/\s+[abcdABCD]\)/);
+    if (idx > 0) questionText = normalizedText.substring(0, idx).trim();
+  } else if (usedPattern === 3) {
+    const idx = normalizedText.search(/\s+[ABCD]\./);
+    if (idx > 0) questionText = normalizedText.substring(0, idx).trim();
+  }
+  questionText = questionText.replace(/[\[(]\d+\s*(?:marks?)?[\])]/gi, '').trim();
+  return { questionText, options };
+}
+
+function normalizeOptions(
+  rawOptions: Array<{ label: string; text: string; isCorrect?: boolean }> | undefined,
+  questionText: string
+): { cleanedQuestionText: string; fixedOptions: MCQOption[] } {
+  let fixedOptions: MCQOption[] = rawOptions
+    ? rawOptions.map(o => ({
+        label: (o.label || '').toLowerCase(),
+        text: o.text || '',
+        isCorrect: o.isCorrect ?? false,
+      }))
+    : [];
+  let cleanedQuestionText = questionText || '';
+
+  if (fixedOptions.length === 1 && fixedOptions[0].text.trim().length > 20) {
+    const s = splitOptions(fixedOptions[0].text);
+    if (s.options.length >= 2) fixedOptions = s.options;
+  }
+  if (fixedOptions.length === 2) {
+    const combined = fixedOptions.map(o => `(${o.label}) ${o.text}`).join(' ');
+    const s = splitOptions(combined);
+    if (s.options.length >= 3) fixedOptions = s.options;
+  }
+  if (fixedOptions.length === 0 && cleanedQuestionText) {
+    const s = splitOptions(cleanedQuestionText);
+    if (s.options.length >= 2) {
+      cleanedQuestionText = s.questionText;
+      fixedOptions = s.options;
+    }
+  }
+  if (fixedOptions.length >= 2 && cleanedQuestionText) {
+    const hasInline = /\([abcd]\)|\b[A-D]\./i.test(cleanedQuestionText);
+    if (hasInline) {
+      const s = splitOptions(cleanedQuestionText);
+      if (s.options.length >= 2) {
+        cleanedQuestionText = s.questionText;
+        s.options.forEach(opt => {
+          if (!fixedOptions.find(o => o.label === opt.label)) fixedOptions.push(opt);
+        });
+      }
+    }
+  }
+  fixedOptions = fixedOptions
+    .map(opt => ({
+      ...opt,
+      label: opt.label.toLowerCase(),
+      text: opt.text
+        .replace(/\s*\([abcdABCD]\)\s*.*$/i, '')
+        .replace(/\s+[abcdABCD]\)\s*.*$/i, '')
+        .replace(/\s+[ABCD]\.\s*.*$/i, '')
+        .replace(/[\[(]\d+\s*(?:marks?)?[\])]/gi, '')
+        .trim(),
+    }))
+    .filter(opt => opt.text.length > 0);
+
+  const seen = new Set<string>();
+  fixedOptions = fixedOptions.filter(opt => {
+    if (!opt.label || seen.has(opt.label)) return false;
+    seen.add(opt.label);
+    return true;
+  });
+
+  fixedOptions.sort((a, b) => a.label.localeCompare(b.label));
+  return { cleanedQuestionText, fixedOptions };
+}
+
+// ─────────────────────────────────────────
+// STEP BAR
+// ─────────────────────────────────────────
+
+function StepBar({
+  current,
+  completedUpTo,
+  onStepClick,
+}: {
+  current: StepId;
+  completedUpTo: number;
+  onStepClick: (id: StepId, index: number) => void;
+}) {
+  const currentIndex = STEPS.findIndex(s => s.id === current);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 0, padding: '0 8px', height: '100%' }}>
+      {STEPS.map((step, i) => {
+        const isDone = i < currentIndex;
+        const isActive = i === currentIndex;
+        const isLocked = i > completedUpTo;
+        const isLast = i === STEPS.length - 1;
+        return (
+          <React.Fragment key={step.id}>
+            <button
+              onClick={() => !isLocked && onStepClick(step.id, i)}
+              disabled={isLocked}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '4px 10px',
+                borderRadius: '8px',
+                background: isActive ? 'rgba(59,130,246,0.2)' : isDone ? 'rgba(34,197,94,0.08)' : 'transparent',
+                border: isActive
+                  ? '1px solid rgba(59,130,246,0.45)'
+                  : isDone
+                  ? '1px solid rgba(34,197,94,0.25)'
+                  : '1px solid transparent',
+                cursor: isLocked ? 'not-allowed' : 'pointer',
+                opacity: isLocked ? 0.35 : 1,
+                transition: 'all 0.15s',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: isActive ? '#3b82f6' : isDone ? '#22c55e' : 'hsl(217 33% 22%)',
+                  color: isActive || isDone ? '#fff' : '#64748b',
+                  flexShrink: 0,
+                }}
+              >
+                {isDone ? '✓' : i + 1}
+              </span>
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: isActive ? 700 : 500,
+                  color: isActive ? '#93c5fd' : isDone ? '#86efac' : '#64748b',
+                }}
+              >
+                {step.icon} {step.label}
+              </span>
+            </button>
+            {!isLast && (
+              <div
+                style={{
+                  width: '20px',
+                  height: '1px',
+                  flexShrink: 0,
+                  background: i < currentIndex ? 'rgba(34,197,94,0.35)' : 'hsl(217 33% 22%)',
+                }}
+              />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
+// MAIN PAGE
+// ─────────────────────────────────────────
+
+export default function BuilderPage() {
+  const router = useRouter();
+  const {
+    title,
+    setTitle,
+    sections,
+    examDetails,
+    templateId,
+    addSection,
+    updateSection,
+    deleteSection,
+    updateQuestion,
+    deleteQuestion,
+    getTotalMarks,
+    getQuestionCount,
+    isSaving,
+    isDirty,
+    setIsSaving,
+    setLastSaved,
+    paperId,
+    setPaperId,
+    
+  } = usePaperStore();
+
+  const [currentStep, setCurrentStep] = useState<StepId>('upload');
+  const [completedUpTo, setCompletedUpTo] = useState<number>(0);
+  const [showExamDetails, setShowExamDetails] = useState(false);
+  const [showAddQuestion, setShowAddQuestion] = useState<{ sectionId: string } | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [isExporting, setIsExporting] = useState(false);
+  const [showPaperName, setShowPaperName] = useState(false);
+const [tempPaperName, setTempPaperName] = useState('');
+
+  useEffect(() => {
+    if (currentStep === 'upload' && sections.length > 0 && getQuestionCount() > 0) {
+      advanceTo('edit', 1);
+      toast.success(`${getQuestionCount()} questions extracted! Review them below.`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sections]);
+
+  function advanceTo(stepId: StepId, index: number) {
+    setCurrentStep(stepId);
+    setCompletedUpTo(prev => Math.max(prev, index));
+  }
+
+  function goNext() {
+    const idx = STEPS.findIndex(s => s.id === currentStep);
+    if (idx >= STEPS.length - 1) return;
+    const next = STEPS[idx + 1];
+    advanceTo(next.id, idx + 1);
+    if (next.id === 'details') setShowExamDetails(true);
+  }
+
+  function goPrev() {
+    const idx = STEPS.findIndex(s => s.id === currentStep);
+    if (idx > 0) setCurrentStep(STEPS[idx - 1].id);
+  }
+
+  function handleStepClick(id: StepId, _index: number) {
+    setCurrentStep(id);
+    if (id === 'details') setShowExamDetails(true);
+  }
+
+  function handleDetailsClose() {
+    setShowExamDetails(false);
+    if (currentStep === 'details') advanceTo('preview', 3);
+  }
+
+  const handleSave = async (
+  customTitle?: string
+): Promise<string | null> => {
+  setIsSaving(true);
+
+  try {
+    const payload = {
+      title: customTitle || title,
+      examDetails,
+      sections,
+      templateId,
+      totalMarks: getTotalMarks(),
+      questionCount: getQuestionCount(),
+      status: 'DRAFT',
+    };
+
+    if (paperId) {
+      await papersApi.update(paperId, payload);
+      setLastSaved(new Date());
+      toast.success('Paper saved!');
+      return paperId;
+    }
+
+    const res = await papersApi.create(payload);
+    const newId = res?.data?.data?.id;
+
+    if (newId) {
+      setPaperId(newId);
+      setLastSaved(new Date());
+      toast.success('Paper saved!');
+      return newId;
+    }
+
+    toast.error('Save response invalid.');
+    return null;
+  } catch {
+    toast.error('Failed to save.');
+    return null;
+  } finally {
+    setIsSaving(false);
+  }
+};const handleFinalSave = async () => {
+  if (!title.trim()) {
+    setTempPaperName('');
+    setShowPaperName(true);
+    return;
+  }
+
+  const id = await handleSave(title);
+
+  if (id) {
+    advanceTo('save', 4);
+  }
+};
+
+  const generatePaperHTML = () => {
+    const ed = examDetails;
+    const totalMarksCalc = getTotalMarks();
+
+    const renderOptions = (opts: Array<{ label: string; text: string }> | undefined, qt: string) => {
+      const { fixedOptions } = normalizeOptions(opts, qt);
+      const o =
+        fixedOptions.length > 0
+          ? fixedOptions
+          : [
+              { label: 'a', text: '___' },
+              { label: 'b', text: '___' },
+              { label: 'c', text: '___' },
+              { label: 'd', text: '___' },
+            ];
+      return `<div class="mcq-options">${o
+        .map(
+          x =>
+            `<div class="mcq-option"><span class="opt-label">(${x.label})</span><span class="opt-text">${x.text}</span></div>`
+        )
+        .join('')}</div>`;
+    };
+
+    const lines = (n: number) =>
+      Array.from({ length: n })
+        .map(() => '<div class="answer-line"></div>')
+        .join('');
+
+    const secHTML = sections
+      .map(s => {
+        const mi = s.marksPerQuestion
+          ? `(${s.marksPerQuestion} Mark${s.marksPerQuestion > 1 ? 's' : ''} Each)`
+          : s.totalMarks
+          ? `[Total: ${s.totalMarks} Marks]`
+          : '';
+
+        const qHTML = s.questions
+          .map(q => {
+            const { cleanedQuestionText } = normalizeOptions(q.options, q.text);
+            let a = '';
+            if (q.type === 'MCQ') a = renderOptions(q.options, q.text);
+            else if (q.type === 'TRUE_FALSE')
+              a = `<div class="tf-options"><span><strong>(a)</strong> True</span><span><strong>(b)</strong> False</span></div>`;
+            else if (q.type === 'FILL_IN_BLANK') a = '<div class="fill-line"></div>';
+            else if (q.type === 'LONG_ANSWER') a = lines(6);
+            else if (q.type === 'DIAGRAM') a = lines(8);
+            else a = lines(2);
+
+            return `<div class="question"><div class="q-row"><span class="q-num">${q.number}.</span><span class="q-text">${
+              cleanedQuestionText || q.text
+            }</span><span class="q-marks"></span></div>${a}</div>`;
+          })
+          .join('');
+
+        return `<div class="section"><div class="section-header">${s.title}${
+          mi ? `<span class="section-marks"></span>` : ''
+        }</div>${s.description ? `<div class="section-desc">${s.description}</div>` : ''}${qHTML}</div>`;
+      })
+      .join('');
+
+    const instHTML = ed.instructions?.length
+      ? `<div class="instructions"><div class="inst-title">General Instructions:</div><ol>${ed.instructions
+          .map((i: string) => `<li>${i}</li>`)
+          .join('')}</ol></div><div class="thin-div"></div>`
+      : '';
+
+    const dateStr = ed.date
+      ? new Date(ed.date).toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric',
+        })
+      : '—';
+
+return `<div class="page-border"></div><div class="paper-wrap"><div class="header"><div class="inst-name">${ed.institutionName||'Institution Name'}</div></div><div class="thick-div"></div><table class="meta-table"><tr><td><strong>Subject:</strong> ${ed.subject||'—'}</td><td style="text-align:right"><strong>Date:</strong> ${dateStr}</td></tr><tr><td><strong>Class:</strong> ${ed.class||'—'}</td><td style="text-align:right"><strong>Duration:</strong> ${ed.duration||'3 Hours'}</td></tr><tr><td><strong>Max. Marks:</strong> ${totalMarksCalc||ed.totalMarks||'—'}</td><td style="text-align:right"><strong></strong> </td></tr>${ed.academicYear?`<tr><td><strong></strong></td><td></td></tr>`:''}</table><div class="thin-div"></div><div class="paper-title">${ed.examType||'Question Paper'}</div><div class="thin-div"></div>${instHTML}${secHTML}<div class="thick-div signatures-divider"></div><table class="sign-table"><tr>${[].map(l=>`<td class="sign-cell"><div class="sign-line"></div><div class="sign-label">${l}</div></td>`).join('')}</tr></table></div>`;
+  };
+
+  const handleExportPdf = () => {
+    setIsExporting(true);
+    try {
+      const w = window.open('', '_blank');
+      if (!w) {
+        toast.error('Popup blocked.');
+        return;
+      }
+
+      const css=`*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:16px;color:#111;background:#fff}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm}.header{text-align:center;margin-bottom:8px}.inst-name{font-size:22px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#1a2e5a}.inst-addr{font-size:14px;color:#555;margin-top:2px}.thick-div{border-top:2px solid #1a2e5a;margin:7px 0}.thin-div{border-top:1px solid #1a2e5a;margin:5px 0}.meta-table{width:100%;border-collapse:collapse;font-size:14.5px;margin:4px 0}.meta-table td{padding:2px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#1a2e5a;margin:5px 0}.instructions{font-size:14px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.7}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #1a2e5a;padding:4px 8px;font-weight:bold;font-size:18px;text-transform:uppercase;color:#1a2e5a;background:#f0f4ff;margin:10px 0 8px}.section-marks{font-weight:normal;font-size:13px;color:#444}.section-desc{text-align:center;font-size:13px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:12px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0;padding-top:1px}.q-text{flex:1;line-height:1.6}.q-marks{font-weight:bold;font-size:13px;color:#1a2e5a;min-width:28px;text-align:right;flex-shrink:0;padding-top:1px}.mcq-options{display:grid;grid-template-columns:1fr 1fr;gap:5px 24px;margin-top:6px;margin-left:28px}.mcq-option{display:flex;gap:5px;font-size:15.5px}.opt-label{font-weight:bold;min-width:22px;flex-shrink:0}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px;font-size:12.5px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}.sign-table{width:100%;border-collapse:collapse;margin-top:6px}.sign-cell{width:33%;text-align:center;padding:0 12px}.sign-line{border-bottom:1px solid #333;height:22px;margin-bottom:4px}.sign-label{font-size:12px;color:#555}@media print{body{margin:0}.paper-wrap{padding:14mm}.question{page-break-inside:avoid}}`;
+
+      w.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>'Question Paper'</title>
+            <style>${css}</style>
+          </head>
+          <body>
+            ${generatePaperHTML()}
+          </body>
+        </html>
+      `);
+      w.document.close();
+      w.focus();
+
+      setTimeout(() => {
+        w.print();
+        w.close();
+        toast.success('Print dialog opened!');
+      }, 600);
+    } catch {
+      toast.error('PDF export failed.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportDocx = async () => {
+    setIsExporting(true);
+    try {
+      const id = paperId || (await handleSave());
+      if (!id) {
+        toast.error('Save first.');
+        return;
+      }
+      const res = await papersApi.exportDocx(id, templateId);
+      const blob = new Blob([res.data], {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${(title || 'paper').replace(/[^a-z0-9]/gi, '_').toLowerCase()}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('DOCX downloaded!');
+    } catch {
+      toast.error('DOCX export failed.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const cardBg = 'hsl(222 41% 12%)';
+  const border = '1px solid hsl(217 33% 18%)';
+  const headerBg = 'hsl(222 30% 14%)';
+
+  const btn = (
+    variant: 'default' | 'primary' | 'success' | 'warning' | 'ghost' = 'default'
+  ): React.CSSProperties => ({
+    padding: '7px 14px',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: 600,
+    border:
+      variant === 'default'
+        ? '1px solid #475569'
+        : variant === 'ghost'
+        ? '1px solid hsl(217 33% 22%)'
+        : 'none',
+    background:
+      variant === 'primary'
+        ? 'linear-gradient(135deg,#2563eb,#0284c7)'
+        : variant === 'success'
+        ? '#16a34a'
+        : variant === 'warning'
+        ? '#ea580c'
+        : variant === 'ghost'
+        ? 'transparent'
+        : '#334155',
+    color: variant === 'ghost' ? '#64748b' : '#fff',
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '5px',
+    minHeight: '34px',
+    transition: 'all 0.15s',
+  });
+
+  const toggleSection = (id: string) =>
+    setExpandedSections(prev => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: 'hsl(222 47% 7%)' }}>
+      <div
+        style={{
+          height: '56px',
+          background: cardBg,
+          borderBottom: border,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '0 14px',
+          flexShrink: 0,
+        }}
+      >
+        <input
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            color: '#f1f5f9',
+            fontSize: '14px',
+            fontWeight: 600,
+            width: '180px',
+            flexShrink: 0,
+          }}
+          placeholder="Paper title..."
+        />
+        <div style={{ width: '1px', height: '24px', background: 'hsl(217 33% 22%)', flexShrink: 0 }} />
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <StepBar current={currentStep} completedUpTo={completedUpTo} onStepClick={handleStepClick} />
+        </div>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+          <span style={{ fontSize: '11px', color: isDirty ? '#f59e0b' : '#64748b' }}>
+            {isSaving ? '⏳ Saving…' : isDirty ? '● Unsaved' : '✓ Saved'}
+          </span>
+          <span
+            style={{
+              fontSize: '11px',
+              color: '#64748b',
+              background: headerBg,
+              padding: '2px 8px',
+              borderRadius: '5px',
+              border,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {getTotalMarks()}M · {getQuestionCount()}Q
+          </span>
+        </div>
+      </div>
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {currentStep === 'upload' && (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
+            <div style={{ maxWidth: '460px', width: '100%', textAlign: 'center' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📤</div>
+              <h2 style={{ color: '#f1f5f9', fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>
+                Upload &amp; Extract Questions
+              </h2>
+              <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '28px', lineHeight: '1.7' }}>
+                Go to the <strong style={{ color: '#93c5fd' }}>Upload page</strong> to upload images or PDFs.
+                <br />
+                Once OCR is complete you will be automatically brought here.
+              </p>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button style={btn('primary')} onClick={() => router.push('/dashboard/upload')}>
+                  📤 Go to Upload
+                </button>
+                <button
+                  style={btn('default')}
+                  onClick={() => {
+                    addSection('Section A');
+                    advanceTo('edit', 1);
+                  }}
+                >
+                  ✏️ Start Manually
+                </button>
+              </div>
+              {sections.length > 0 && (
+                <div
+                  style={{
+                    marginTop: '20px',
+                    padding: '14px 16px',
+                    background: 'rgba(34,197,94,0.08)',
+                    border: '1px solid rgba(34,197,94,0.25)',
+                    borderRadius: '10px',
+                  }}
+                >
+                  <p style={{ color: '#86efac', fontSize: '13px', marginBottom: '10px' }}>
+                    ✓ {getQuestionCount()} questions already extracted
+                  </p>
+                  <button style={btn('success')} onClick={() => advanceTo('edit', 1)}>
+                    Continue to Edit →
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {currentStep === 'edit' && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div
+              style={{
+                background: headerBg,
+                borderBottom: border,
+                padding: '8px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexShrink: 0,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: '#64748b',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                ✏️ Edit Questions
+              </span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button style={btn('default')} onClick={() => addSection('New Section')}>
+                  + Add Section
+                </button>
+                <button style={btn('primary')} onClick={goNext}>
+                  Next: Exam Details →
+                </button>
+              </div>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
+              {sections.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '12px' }}>📝</div>
+                  <p style={{ marginBottom: '16px' }}>No sections yet.</p>
+                  <button style={btn('default')} onClick={() => addSection('Section A')}>
+                    + Add First Section
+                  </button>
+                </div>
+              ) : (
+                sections.map(section => (
+                  <SectionEditor
+                    key={section.id}
+                    section={section}
+                    isExpanded={!expandedSections.has(section.id)}
+                    onToggle={() => toggleSection(section.id)}
+                    onUpdate={u => updateSection(section.id, u)}
+                    onDelete={() => deleteSection(section.id)}
+                    onAddQuestion={() => setShowAddQuestion({ sectionId: section.id })}
+                    onUpdateQuestion={(qId, u) => updateQuestion(section.id, qId, u)}
+                    onDeleteQuestion={qId => deleteQuestion(section.id, qId)}
+                  />
+                ))
+              )}
+            </div>
+            <div
+              style={{
+                padding: '10px 14px',
+                borderTop: border,
+                display: 'flex',
+                justifyContent: 'space-between',
+                background: headerBg,
+                flexShrink: 0,
+              }}
+            >
+              <button style={btn('ghost')} onClick={goPrev}>
+                ← Back
+              </button>
+              <button style={btn('primary')} onClick={goNext}>
+                Next: Exam Details →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {currentStep === 'details' && (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
+            <div style={{ maxWidth: '420px', width: '100%', textAlign: 'center' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚙️</div>
+              <h2 style={{ color: '#f1f5f9', fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>
+                Exam Details
+              </h2>
+              <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '24px' }}>
+                Fill in institution, subject, date, duration and instructions.
+              </p>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button style={btn('ghost')} onClick={goPrev}>
+                  ← Back
+                </button>
+                <button style={btn('warning')} onClick={() => setShowExamDetails(true)}>
+                  ⚙️ Open Details Form
+                </button>
+                <button style={btn('primary')} onClick={() => advanceTo('preview', 3)}>
+                  Skip to Preview →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {currentStep === 'preview' && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div
+              style={{
+                background: headerBg,
+                borderBottom: border,
+                padding: '8px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexShrink: 0,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: '#64748b',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                👁 Preview
+              </span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button style={btn('default')} onClick={() => setShowExamDetails(true)}>
+                  ⚙️ Edit Details
+                </button>
+                
+  
+                <button style={btn('success')} onClick={handleFinalSave} disabled={isSaving}>
+                  {isSaving ? '⏳ Saving…' : '💾 Save Paper'}
+                </button>
+              </div>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', background: '#d1d5db', padding: '16px' }}>
+              <div
+                style={{
+                  background: '#fff',
+                  borderRadius: '6px',
+                  padding: '20px',
+                  minHeight: '600px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                  maxWidth: '800px',
+                  margin: '0 auto',
+                }}
+              >
+                <PaperPreview />
+              </div>
+            </div>
+            <div
+              style={{
+                padding: '10px 14px',
+                borderTop: border,
+                display: 'flex',
+                justifyContent: 'space-between',
+                background: headerBg,
+                flexShrink: 0,
+              }}
+            >
+              <button style={btn('ghost')} onClick={goPrev}>
+                ← Back
+              </button>
+              <button style={btn('success')} onClick={handleFinalSave} disabled={isSaving}>
+                {isSaving ? '⏳ Saving…' : '💾 Save & Finish →'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {currentStep === 'save' && (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
+            <div style={{ maxWidth: '440px', width: '100%', textAlign: 'center' }}>
+              <div style={{ fontSize: '56px', marginBottom: '16px' }}>🎉</div>
+              <h2 style={{ color: '#f1f5f9', fontSize: '22px', fontWeight: 700, marginBottom: '8px' }}>
+                Paper Saved!
+              </h2>
+              <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '28px', lineHeight: '1.6' }}>
+                Your question paper has been saved successfully.
+                <br />
+                Export it or go back to make changes.
+              </p>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button style={btn('default')} onClick={handleExportDocx} disabled={isExporting}>
+                  📄 Download DOCX
+                </button>
+                <button style={btn('default')} onClick={handleExportPdf} disabled={isExporting}>
+                  🖨️ Export PDF
+                </button>
+                <button style={btn('primary')} onClick={() => setCurrentStep('preview')}>
+                  👁 Back to Preview
+                </button>
+                <button style={btn('ghost')} onClick={() => router.push('/dashboard')}>
+                  ← Dashboard
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {showExamDetails && <ExamDetailsModal onClose={handleDetailsClose} />}
+      {showPaperName && (
+  <div
+    style={{
+      position: 'fixed',
+      inset: 0,
+      background: 'rgba(0,0,0,0.7)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 9999,
+      backdropFilter: 'blur(4px)',
+    }}
+  >
+    <div
+      style={{
+        width: '420px',
+        background: 'hsl(222 41% 12%)',
+        border: '1px solid hsl(217 33% 18%)',
+        borderRadius: '16px',
+        padding: '24px',
+      }}
+    >
+      <div
+        style={{
+          fontSize: '42px',
+          textAlign: 'center',
+          marginBottom: '12px',
+        }}
+      >
+        📝
+      </div>
+
+      <h2
+        style={{
+          color: '#f1f5f9',
+          textAlign: 'center',
+          fontSize: '20px',
+          marginBottom: '8px',
+        }}
+      >
+        Give Your Paper a Name
+      </h2>
+
+      <p
+        style={{
+          color: '#64748b',
+          textAlign: 'center',
+          fontSize: '13px',
+          marginBottom: '18px',
+        }}
+      >
+        This name will appear in My Papers.
+      </p>
+
+      <input
+        autoFocus
+        value={tempPaperName}
+        onChange={e => setTempPaperName(e.target.value)}
+        placeholder="Ex: Physics Mid-Term 2026"
+        style={{
+          width: '100%',
+          background: 'hsl(222 30% 14%)',
+          border: '1px solid hsl(217 33% 18%)',
+          borderRadius: '10px',
+          padding: '12px',
+          color: '#f1f5f9',
+          fontSize: '14px',
+          outline: 'none',
+        }}
+      />
+
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: '10px',
+          marginTop: '20px',
+        }}
+      >
+        <button
+          style={btn('ghost')}
+          onClick={() => setShowPaperName(false)}
+        >
+          Cancel
+        </button>
+
+        <button
+          style={btn('success')}
+          onClick={async () => {
+  const paperName = tempPaperName.trim();
+
+  if (!paperName) {
+    toast.error('Enter paper name');
+    return;
+  }
+
+  setTitle(paperName);
+  setShowPaperName(false);
+
+  const id = await handleSave(paperName);
+
+  if (id) {
+    advanceTo('save', 4);
+  }
+}}
+        >
+          💾 Save Paper
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+      {showAddQuestion && <AddQuestionModal sectionId={showAddQuestion.sectionId} onClose={() => setShowAddQuestion(null)} />}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
+// SECTION EDITOR
+// ─────────────────────────────────────────
+
+interface SectionEditorProps {
+  section: Section;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onUpdate: (u: Partial<Section>) => void;
+  onDelete: () => void;
+  onAddQuestion: () => void;
+  onUpdateQuestion: (qId: string, u: Partial<Question>) => void;
+  onDeleteQuestion: (qId: string) => void;
+}
+
+function SectionEditor({
+  section,
+  isExpanded,
+  onToggle,
+  onUpdate,
+  onDelete,
+  onAddQuestion,
+  onUpdateQuestion,
+  onDeleteQuestion,
+}: SectionEditorProps) {
+  const border = '1px solid hsl(217 33% 18%)';
+  return (
+    <div style={{ background: 'hsl(222 47% 7%)', border, borderRadius: '10px', marginBottom: '10px', overflow: 'hidden' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '8px 12px',
+          background: 'hsl(222 30% 14%)',
+          borderBottom: isExpanded ? border : 'none',
+        }}
+      >
+        <span style={{ color: '#64748b', fontSize: '12px', cursor: 'pointer' }} onClick={onToggle}>
+          {isExpanded ? '▼' : '▶'}
+        </span>
+        <input
+          value={section.title}
+          onChange={e => onUpdate({ title: e.target.value })}
+          onClick={e => e.stopPropagation()}
+          style={{
+            flex: 1,
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            color: '#f1f5f9',
+            fontSize: '13px',
+            fontWeight: 600,
+          }}
+          placeholder="Section title..."
+        />
+        <span
+          style={{
+            fontSize: '11px',
+            color: '#64748b',
+            background: 'hsl(222 47% 7%)',
+            padding: '2px 8px',
+            borderRadius: '5px',
+            border,
+          }}
+        >
+          {section.questions.length} Q ·{' '}
+{section.questions.reduce((sum, q) => sum + q.marks, 0)} marks
+        </span>
+        <div
+  style={{
+    color: 'yellow',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    background: 'rgba(59,130,246,0.08)',
+    border: '1px solid rgba(59,130,246,0.18)',
+    borderRadius: '10px',
+    padding: '5px 10px',
+    minWidth: 'fit-content',
+  }}
+>Assign Marks / Q
+  <span
+    title="Assign marks to all questions"
+    style={{
+      fontSize: '13px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '24px',
+      height: '24px',
+      borderRadius: '6px',
+      background: 'rgba(59,130,246,0.15)',
+      color: '#60a5fa',
+      flexShrink: 0,
+    }}
+  >
+    ✒️
+  </span>
+
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+    <span
+      style={{
+        fontSize: '9px',
+        color: '#64748b',
+        textTransform: 'uppercase',
+        letterSpacing: '0.06em',
+        lineHeight: 1,
+      }}
+    >
+      Marks / Q
+    </span>
+
+    <input
+      type="number"
+      min={1}
+      value={section.marksPerQuestion || ''}
+      onChange={e => {
+        const marks = parseInt(e.target.value, 10) || 1;
+
+        onUpdate({
+          marksPerQuestion: marks,
+          questions: section.questions.map(q => ({
+            ...q,
+            marks,
+          })),
+        });
+      }}
+      placeholder="0"
+      style={{
+        width: '52px',
+        background: 'transparent',
+        border: 'none',
+        outline: 'none',
+        color: '#f1f5f9',
+        fontSize: '14px',
+        fontWeight: 700,
+        padding: 0,
+      }}
+    />
+  </div>
+</div>
+        <button
+          onClick={e => {
+            e.stopPropagation();
+            onAddQuestion();
+          }}
+          style={{
+            background: 'rgba(59,130,246,0.15)',
+            border: 'none',
+            color: '#60a5fa',
+            borderRadius: '6px',
+            padding: '3px 8px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 600,
+          }}
+        >
+          + Add Q
+        </button>
+        <button
+          onClick={e => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          style={{
+            background: 'rgba(239,68,68,0.1)',
+            border: 'none',
+            color: '#f87171',
+            borderRadius: '6px',
+            padding: '3px 8px',
+            cursor: 'pointer',
+            fontSize: '12px',
+          }}
+        >
+          🗑
+        </button>
+      </div>
+      {isExpanded && (
+        <div style={{ padding: '8px' }}>
+          {section.questions.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '16px', fontSize: '12px', color: '#64748b' }}>
+              No questions yet.{' '}
+              <span style={{ color: '#60a5fa', cursor: 'pointer' }} onClick={onAddQuestion}>
+                Add one →
+              </span>
+            </div>
+          ) : (
+            section.questions.map(q => (
+              <QuestionEditor
+                key={q.id}
+                question={q}
+                onUpdate={u => onUpdateQuestion(q.id, u)}
+                onDelete={() => onDeleteQuestion(q.id)}
+              />
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
+// QUESTION EDITOR
+// ─────────────────────────────────────────
+
+interface QuestionEditorProps {
+  question: Question;
+  onUpdate: (u: Partial<Question>) => void;
+  onDelete: () => void;
+}
+
+const QUESTION_TYPES: Array<Question['type']> = [
+  'MCQ',
+  'SHORT_ANSWER',
+  'LONG_ANSWER',
+  'FILL_IN_BLANK',
+  'TRUE_FALSE',
+  'NUMERICAL',
+  'DIAGRAM',
+];
+
+function QuestionEditor({ question, onUpdate, onDelete }: QuestionEditorProps) {
+  const border = '1px solid hsl(217 33% 18%)';
+  const inputStyle: React.CSSProperties = {
+    background: 'hsl(222 30% 14%)',
+    border,
+    borderRadius: '6px',
+    padding: '4px 8px',
+    color: '#f1f5f9',
+    fontSize: '11px',
+    outline: 'none',
+  };
+  const { cleanedQuestionText, fixedOptions } = normalizeOptions(question.options, question.text);
+  const displayOptions: MCQOption[] =
+    fixedOptions.length > 0
+      ? fixedOptions
+      : question.type === 'MCQ'
+      ? [
+          { label: 'a', text: '', isCorrect: false },
+          { label: 'b', text: '', isCorrect: false },
+          { label: 'c', text: '', isCorrect: false },
+          { label: 'd', text: '', isCorrect: false },
+        ]
+      : [];
+  const displayText = cleanedQuestionText || question.text;
+
+  return (
+    <div style={{ background: 'hsl(222 41% 12%)', border, borderRadius: '8px', padding: '10px 12px', marginBottom: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+        <span
+          style={{
+            fontSize: '11px',
+            fontWeight: 700,
+            color: '#60a5fa',
+            background: 'rgba(59,130,246,0.1)',
+            padding: '2px 8px',
+            borderRadius: '5px',
+            flexShrink: 0,
+          }}
+        >
+          Q{question.number}
+        </span>
+        <select
+          value={question.type}
+          onChange={e => onUpdate({ type: e.target.value as Question['type'] })}
+          style={{ ...inputStyle, cursor: 'pointer' }}
+        >
+          {QUESTION_TYPES.map(t => (
+            <option key={t} value={t}>
+              {t.replace('_', ' ')}
+            </option>
+          ))}
+        </select>
+        <select
+          value={question.difficulty || 'MEDIUM'}
+          onChange={e => onUpdate({ difficulty: e.target.value as Question['difficulty'] })}
+          style={{ ...inputStyle, cursor: 'pointer', width: '90px' }}
+        >
+          {['EASY', 'MEDIUM', 'HARD'].map(d => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+        </select>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto' }}>
+          <input
+            type="number"
+            value={question.marks}
+            onChange={e => onUpdate({ marks: parseInt(e.target.value, 10) || 1 })}
+            min={1}
+            max={20}
+            style={{ ...inputStyle, width: '44px', textAlign: 'center' }}
+          />
+          <span style={{ fontSize: '11px', color: '#64748b' }}>marks</span>
+        </div>
+        <button
+          onClick={onDelete}
+          style={{
+            background: 'rgba(239,68,68,0.1)',
+            border: 'none',
+            color: '#f87171',
+            borderRadius: '5px',
+            padding: '3px 7px',
+            cursor: 'pointer',
+            fontSize: '11px',
+          }}
+        >
+          🗑
+        </button>
+      </div>
+
+      <textarea
+        value={displayText}
+        onChange={e => {
+          const t = e.target.value;
+          const s = splitOptions(t);
+          s.options.length >= 2 ? onUpdate({ text: s.questionText, type: 'MCQ', options: s.options }) : onUpdate({ text: t });
+        }}
+        placeholder="Enter question text..."
+        rows={2}
+        style={{
+          background: 'transparent',
+          border: 'none',
+          outline: 'none',
+          color: '#f1f5f9',
+          fontSize: '13px',
+          width: '100%',
+          resize: 'vertical',
+          fontFamily: 'inherit',
+          lineHeight: '1.5',
+        }}
+      />
+
+      {question.type === 'MCQ' && (
+        <div style={{ marginTop: '10px' }}>
+          <div
+            style={{
+              fontSize: '10px',
+              color: '#64748b',
+              marginBottom: '6px',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+            }}
+          >
+            Options
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            {displayOptions.map((opt, i) => (
+              <div
+                key={`${opt.label}-${i}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'hsl(222 47% 7%)',
+                  border,
+                  borderRadius: '8px',
+                  padding: '6px 10px',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: '#60a5fa',
+                    minWidth: '26px',
+                    flexShrink: 0,
+                    fontFamily: 'monospace',
+                  }}
+                >
+                  ({opt.label})
+                </span>
+                <input
+                  type="text"
+                  value={opt.text}
+                  onChange={e => {
+                    const o = [...displayOptions];
+                    o[i] = { ...o[i], text: e.target.value };
+                    onUpdate({ options: o });
+                  }}
+                  placeholder={`Option ${opt.label.toUpperCase()}...`}
+                  style={{
+                    flex: 1,
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: '#f1f5f9',
+                    fontSize: '12px',
+                    fontFamily: 'inherit',
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+          {displayOptions.length < 4 && (
+            <button
+              onClick={() => {
+                const labels = ['a', 'b', 'c', 'd'];
+                const nl = labels[displayOptions.length] || 'd';
+                onUpdate({ options: [...displayOptions, { label: nl, text: '', isCorrect: false }] });
+              }}
+              style={{
+                marginTop: '6px',
+                fontSize: '11px',
+                color: '#60a5fa',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '2px 0',
+              }}
+            >
+              + Add Option
+            </button>
+          )}
+        </div>
+      )}
+
+      {question.type === 'TRUE_FALSE' && (
+        <div style={{ marginTop: '6px', display: 'flex', gap: '16px' }}>
+          {['True', 'False'].map((v, i) => (
+            <div
+              key={v}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'hsl(222 47% 7%)',
+                border,
+                borderRadius: '8px',
+                padding: '5px 10px',
+              }}
+            >
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#60a5fa' }}>({i === 0 ? 'a' : 'b'})</span>
+              <span style={{ fontSize: '12px', color: '#f1f5f9' }}>{v}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
