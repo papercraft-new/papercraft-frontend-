@@ -11,7 +11,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/builder', label: '✏️ Paper Builder', section: 'Main' },
   { href: '/dashboard/templates', label: '🎨 Templates', section: 'Main' },
   { href: '/dashboard/papers', label: '📄 My Papers', section: 'Library' },
-  { href: '/dashboard/exports', label: '⬇️ Exports', section: 'Library' },
+  
   { href: '/dashboard/ai-assistant', label: '🤖 AI Assistant', section: 'AI Tools' },
   { href: '/dashboard/billing', label: '💳 Billing', section: 'Account' },
   { href: '/dashboard/admin', label: '🛡️ Admin Dashboard', section: 'Admin', adminOnly: true },
