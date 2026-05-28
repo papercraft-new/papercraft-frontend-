@@ -105,9 +105,11 @@ function LoginPageContent() {
                 <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Password
                 </Label>
+                
                 <Link href="/auth/forgot-password" className="text-xs text-primary hover:underline">
                 </Link>
               </div>
+              
 
               <div className="relative mt-1">
                 <Input
@@ -125,11 +127,20 @@ function LoginPageContent() {
                   {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+               <div className="text-right mt-1 mb-3">
+    <Link
+      href="/auth/forgot-password"
+      className="text-xs text-primary hover:underline"
+    >
+      Forgot password?
+    </Link>
+  </div>
 
               {errors.password && (
                 <p className="text-xs text-red-400 mt-1">{errors.password.message}</p>
               )}
             </div>
+            
 
             <Button
               type="submit"
@@ -139,7 +150,9 @@ function LoginPageContent() {
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
               Sign In
             </Button>
+            
           </form>
+          
 
           <p className="text-sm text-center text-muted-foreground mt-5">
             Don't have an account?{' '}
