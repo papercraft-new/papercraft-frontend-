@@ -1203,20 +1203,23 @@ function QuestionEditor({ question, onUpdate, onDelete }: QuestionEditorProps) {
     fontSize: '11px',
     outline: 'none',
   };
-  const { cleanedQuestionText, fixedOptions } = normalizeOptions(question.options, question.text);
-  const displayOptions: MCQOption[] =
-    fixedOptions.length > 0
-      ? fixedOptions
-      : question.type === 'MCQ'
-      ? [
+const { cleanedQuestionText } = normalizeOptions(question.options, question.text);
+
+const displayOptions: MCQOption[] =
+  question.type === 'MCQ'
+    ? question.options && question.options.length > 0
+      ? question.options.slice(0, 4).map(opt => ({
+          label: opt.label,
+          text: opt.text,
+          isCorrect: opt.isCorrect ?? false,
+        }))
+      : [
           { label: 'a', text: '', isCorrect: false },
           { label: 'b', text: '', isCorrect: false },
-          { label: 'c', text: '', isCorrect: false },
-          { label: 'd', text: '', isCorrect: false },
         ]
-      : [];
-  const displayText = cleanedQuestionText || question.text;
+    : [];
 
+const displayText = cleanedQuestionText || question.text;
   return (
     <div style={{ background: 'hsl(222 41% 12%)', border, borderRadius: '8px', padding: '10px 12px', marginBottom: '8px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
@@ -1367,25 +1370,32 @@ function QuestionEditor({ question, onUpdate, onDelete }: QuestionEditorProps) {
             ))}
           </div>
           {displayOptions.length < 4 && (
-            <button
-              onClick={() => {
-                const labels = ['a', 'b', 'c', 'd'];
-                const nl = labels[displayOptions.length] || 'd';
-                onUpdate({ options: [...displayOptions, { label: nl, text: '', isCorrect: false }] });
-              }}
-              style={{
-                marginTop: '6px',
-                fontSize: '11px',
-                color: '#60a5fa',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '2px 0',
-              }}
-            >
-              + Add Option
-            </button>
-          )}
+  <button
+    type="button"
+    onClick={() => {
+      const labels = ['a', 'b', 'c', 'd'];
+      const nextLabel = labels[displayOptions.length];
+
+      onUpdate({
+        options: [
+          ...displayOptions,
+          { label: nextLabel, text: '', isCorrect: false },
+        ],
+      });
+    }}
+    style={{
+      marginTop: '6px',
+      fontSize: '11px',
+      color: '#60a5fa',
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      padding: '2px 0',
+    }}
+  >
+    + Add Option
+  </button>
+)}
         </div>
       )}
 
