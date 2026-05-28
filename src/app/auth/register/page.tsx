@@ -63,26 +63,29 @@ function RegisterPageContent() {
   const strengthLabels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
   const strengthColors = ['', 'bg-red-500', 'bg-yellow-500', 'bg-blue-500', 'bg-green-500'];
 
-  const onSubmit = async (data: RegisterForm) => {
-    try {
-      const res = await authApi.register({
-        name: data.name,
-        email: data.email,
-        password: data.password,
-      });
+const onSubmit = async (data: RegisterForm) => {
+  try {
+    const email = data.email.trim().toLowerCase();
+    const name = data.name.trim();
 
-      const { user, token } = res.data.data;
-      login(user, token);
-      toast.success('Account created! Welcome to Paptrix 🎉');
-      router.push('/dashboard');
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-        'Registration failed. Please try again.';
-      toast.error(msg);
-    }
-  };
+    const res = await authApi.register({
+      name,
+      email,
+      password: data.password,
+    });
 
+    const { user, token } = res.data.data;
+    login(user, token);
+
+    toast.success('Account created! Please verify your email.');
+    router.push(`/auth/verify-otp?email=${encodeURIComponent(email)}`);
+  } catch (err: unknown) {
+    const msg =
+      (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+      'Registration failed. Please try again.';
+    toast.error(msg);
+  }
+};
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="absolute inset-0 bg-mesh-gradient pointer-events-none" />

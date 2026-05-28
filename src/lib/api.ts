@@ -119,6 +119,7 @@ export const papersApi = {
     ),
 
   getVersions: (id: string) => apiClient.get(`/papers/${id}/versions`),
+  
 };
 
 // ─────────────────────────────────────────
@@ -236,3 +237,13 @@ export function downloadBlob(blob: Blob, filename: string) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+export const otpApi = {
+  send: (email: string) =>
+    apiClient.post('/otp/send', { email }),
+
+  verify: (email: string, otp: string) =>
+    apiClient.post('/otp/verify', { email, otp }),
+
+  resend: (email: string) =>
+    apiClient.post('/otp/resend', { email }),
+};

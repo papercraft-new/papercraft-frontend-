@@ -761,6 +761,7 @@ function Footer() {
         </div>
       </div>
     </footer>
+    
   );
 }
 
@@ -780,6 +781,31 @@ export default function LandingPage() {
       <FAQ />
       <CtaBanner />
       <Footer />
+      <a
+  href="https://wa.me/919876543210?text=Hello%20I%20want%20to%20know%20more%20about%20Paptrix"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-5 py-3 rounded-full shadow-2xl hover:scale-105 hover:shadow-green-500/30 transition-all duration-300 group"
+>
+  {/* WhatsApp Icon */}
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 32 32"
+    className="w-6 h-6 fill-white"
+  >
+    <path d="M16.001 3C8.832 3 3 8.832 3 16c0 2.57.75 5.07 2.17 7.22L3 29l5.94-2.11A12.93 12.93 0 0 0 16 29c7.168 0 13-5.832 13-13S23.169 3 16 3zm0 23.4a10.3 10.3 0 0 1-5.25-1.43l-.38-.22-3.52 1.25 1.18-3.43-.24-.4A10.28 10.28 0 1 1 16 26.4zm5.64-7.69c-.31-.15-1.83-.9-2.11-1s-.49-.15-.69.15-.8 1-1 1.2-.34.23-.65.08a8.34 8.34 0 0 1-2.45-1.51 9.17 9.17 0 0 1-1.7-2.1c-.18-.31 0-.48.14-.63.14-.14.31-.34.46-.51.15-.18.2-.31.31-.51s.05-.39-.03-.54c-.08-.15-.69-1.67-.95-2.29-.25-.6-.5-.52-.69-.53h-.59c-.2 0-.54.08-.82.39-.28.31-1.08 1.05-1.08 2.57s1.1 2.98 1.25 3.19c.15.2 2.15 3.29 5.2 4.61.73.31 1.3.49 1.75.63.74.24 1.42.2 1.95.12.6-.09 1.83-.75 2.09-1.48.26-.72.26-1.34.18-1.48-.08-.14-.28-.22-.59-.37z"/>
+  </svg>
+
+  <span className="hidden sm:inline font-semibold">
+    Chat with us
+  </span>
+
+  {/* Ping animation */}
+  <span className="absolute -top-1 -right-1 flex h-4 w-4">
+    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+    <span className="relative inline-flex rounded-full h-4 w-4 bg-green-500"></span>
+  </span>
+</a>
     </div>
   );
 }
