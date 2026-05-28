@@ -41,7 +41,7 @@ const initialSteps: ProcessStep[] = [
   { id: 'finalize',  label: 'Structure Generation', description: 'Building your question paper structure...',  status: 'wait' },
 ];
 
-const MAX_FILES = 10;
+const MAX_FILES = 3;
 
 export default function UploadPage() {
   const router = useRouter();
