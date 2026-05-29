@@ -68,7 +68,7 @@ const onSubmit = async (data: RegisterForm) => {
     const email = data.email.trim().toLowerCase();
     const name = data.name.trim();
 
-    const res = await authApi.register({
+   const res = await authApi.register({
       name,
       email,
       password: data.password,
@@ -77,8 +77,8 @@ const onSubmit = async (data: RegisterForm) => {
     const { user, token } = res.data.data;
     login(user, token);
 
-    toast.success('Account created! Please verify your email.');
-    router.push(`/auth/verify-otp?email=${encodeURIComponent(email)}`);
+    toast.success(`Welcome to PaperCraft AI, ${name}! 🎉`);
+    router.push('/dashboard');
   } catch (err: unknown) {
     const msg =
       (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
