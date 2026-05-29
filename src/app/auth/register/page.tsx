@@ -1,6 +1,5 @@
 'use client';
-
-import { Suspense, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -27,30 +26,31 @@ const registerSchema = z.object({
     message: 'You must accept the Terms, Privacy Policy, and Refund Policy',
   }),
 });
-
 type RegisterForm = z.infer<typeof registerSchema>;
 
 const perks = [
+  
   'AI OCR from handwritten images',
+  
   'No credit card required',
 ];
 
-function RegisterPageContent() {
+export default function RegisterPage() {
   const router = useRouter();
   const { login } = useAuthStore();
   const [showPass, setShowPass] = useState(false);
 
   const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm<RegisterForm>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      acceptPolicies: false,
-    },
-  });
+  register,
+  handleSubmit,
+  watch,
+  formState: { errors, isSubmitting },
+} = useForm<RegisterForm>({
+  resolver: zodResolver(registerSchema),
+  defaultValues: {
+    acceptPolicies: false,
+  },
+});
 
   const password = watch('password', '');
   const strength = [
@@ -62,22 +62,17 @@ function RegisterPageContent() {
 
   const strengthLabels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
   const strengthColors = ['', 'bg-red-500', 'bg-yellow-500', 'bg-blue-500', 'bg-green-500'];
-
 const onSubmit = async (data: RegisterForm) => {
   try {
-    const email = data.email.trim().toLowerCase();
-    const name = data.name.trim();
-
-   const res = await authApi.register({
-      name,
-      email,
+    const res = await authApi.register({
+      name: data.name,
+      email: data.email,
       password: data.password,
     });
 
     const { user, token } = res.data.data;
     login(user, token);
-
-    toast.success(`Welcome to PaperCraft AI, ${name}! 🎉`);
+    toast.success('Account created! Welcome to PaperCraft AI 🎉');
     router.push('/dashboard');
   } catch (err: unknown) {
     const msg =
@@ -96,11 +91,12 @@ const onSubmit = async (data: RegisterForm) => {
         transition={{ duration: 0.4 }}
         className="w-full max-w-md relative z-10"
       >
+        {/* Logo */}
         <div className="flex items-center justify-center gap-2.5 mb-8">
           <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl flex items-center justify-center">
             <FileSpreadsheet className="w-5 h-5 text-white" />
           </div>
-          <span className="text-xl font-bold">Paptrix</span>
+          <span className="text-xl font-bold">PaperCraft AI</span>
         </div>
 
         <div className="bg-card border border-border rounded-2xl p-8 shadow-2xl">
@@ -109,6 +105,7 @@ const onSubmit = async (data: RegisterForm) => {
             Start creating professional exam papers in minutes.
           </p>
 
+          {/* Perks */}
           <div className="grid grid-cols-2 gap-2 mb-6">
             {perks.map((perk) => (
               <div key={perk} className="flex items-start gap-1.5 text-[12px] text-muted-foreground">
@@ -150,7 +147,6 @@ const onSubmit = async (data: RegisterForm) => {
               <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Password
               </Label>
-
               <div className="relative mt-1">
                 <Input
                   {...register('password')}
@@ -168,6 +164,7 @@ const onSubmit = async (data: RegisterForm) => {
                 </button>
               </div>
 
+              {/* Password strength */}
               {password.length > 0 && (
                 <div className="mt-2">
                   <div className="flex gap-1">
@@ -186,52 +183,48 @@ const onSubmit = async (data: RegisterForm) => {
                 </div>
               )}
 
-              {errors.password && (
-                <p className="text-xs text-red-400 mt-1">{errors.password.message}</p>
-              )}
+              {errors.password && <p className="text-xs text-red-400 mt-1">{errors.password.message}</p>}
             </div>
+<div className="space-y-2">
+  <label className="flex items-start gap-3 rounded-lg border border-border p-3">
+    <input
+      type="checkbox"
+      {...register('acceptPolicies')}
+      className="mt-1 h-4 w-4 rounded border-border"
+    />
+    <span className="text-xs text-muted-foreground leading-5">
+      I agree to the{' '}
+      <Link
+        href="/terms-and-conditions"
+        target="_blank"
+        className="text-primary font-semibold hover:underline"
+      >
+        Terms & Conditions
+      </Link>
+      ,{' '}
+      <Link
+        href="/privacy-policy"
+        target="_blank"
+        className="text-primary font-semibold hover:underline"
+      >
+        Privacy Policy
+      </Link>
+      {' '}and{' '}
+      <Link
+        href="/refund-policy"
+        target="_blank"
+        className="text-primary font-semibold hover:underline"
+      >
+        Refund Policy
+      </Link>
+      .
+    </span>
+  </label>
 
-            <div className="space-y-2">
-              <label className="flex items-start gap-3 rounded-lg border border-border p-3">
-                <input
-                  type="checkbox"
-                  {...register('acceptPolicies')}
-                  className="mt-1 h-4 w-4 rounded border-border"
-                />
-                <span className="text-xs text-muted-foreground leading-5">
-                  I agree to the{' '}
-                  <Link
-                    href="/terms-and-conditions"
-                    target="_blank"
-                    className="text-primary font-semibold hover:underline"
-                  >
-                    Terms & Conditions
-                  </Link>
-                  ,{' '}
-                  <Link
-                    href="/privacy-policy"
-                    target="_blank"
-                    className="text-primary font-semibold hover:underline"
-                  >
-                    Privacy Policy
-                  </Link>{' '}
-                  and{' '}
-                  <Link
-                    href="/refund-policy"
-                    target="_blank"
-                    className="text-primary font-semibold hover:underline"
-                  >
-                    Refund Policy
-                  </Link>
-                  .
-                </span>
-              </label>
-
-              {errors.acceptPolicies && (
-                <p className="text-xs text-red-400">{errors.acceptPolicies.message}</p>
-              )}
-            </div>
-
+  {errors.acceptPolicies && (
+    <p className="text-xs text-red-400">{errors.acceptPolicies.message}</p>
+  )}
+</div>
             <Button
               type="submit"
               disabled={isSubmitting}
@@ -242,6 +235,8 @@ const onSubmit = async (data: RegisterForm) => {
             </Button>
           </form>
 
+          
+
           <p className="text-sm text-center text-muted-foreground mt-4">
             Already have an account?{' '}
             <Link href="/auth/login" className="text-primary font-semibold hover:underline">
@@ -251,27 +246,5 @@ const onSubmit = async (data: RegisterForm) => {
         </div>
       </motion.div>
     </div>
-  );
-}
-
-export default function RegisterPage() {
-  return (
-    <Suspense
-      fallback={
-        <div
-          style={{
-            minHeight: '100vh',
-            background: 'hsl(222 47% 7%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <div style={{ color: '#64748b', fontSize: '14px' }}>Loading...</div>
-        </div>
-      }
-    >
-      <RegisterPageContent />
-    </Suspense>
   );
 }
