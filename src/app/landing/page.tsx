@@ -782,7 +782,7 @@ export default function LandingPage() {
       <CtaBanner />
       <Footer />
       <a
-  href="https://wa.me/6303677737?text=Hello%20I%20want%20to%20know%20more%20about%20Paptrix"
+  href="https://wa.me/916303677737?text=Hello%20I%20want%20to%20know%20more%20about%20Paptrix"
   target="_blank"
   rel="noopener noreferrer"
   className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-5 py-3 rounded-full shadow-2xl hover:scale-105 hover:shadow-green-500/30 transition-all duration-300 group"
