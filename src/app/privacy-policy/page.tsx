@@ -103,7 +103,7 @@ export default function PrivacyPage() {
               <li><strong style={{ color: '#f1f5f9' }}>Export</strong> — Download your papers and data</li>
               <li><strong style={{ color: '#f1f5f9' }}>Opt out</strong> — Unsubscribe from marketing emails</li>
             </ul>
-            To exercise any of these rights, email us at <strong>admin@papercraftai.in</strong>
+            To exercise any of these rights, email us at <strong>papercraft271@gmail.com</strong>
           </Section>
 
           <Section title="7. Data Retention">
@@ -125,7 +125,7 @@ export default function PrivacyPage() {
           </Section>
 
           <Section title="9. Children's Privacy">
-            Paptrix is not intended for children under 18 years old. We do not knowingly collect data from children. If you believe a child has provided us data, contact us immediately at <strong>admin@papercraftai.in</strong>
+            Paptrix is not intended for children under 18 years old. We do not knowingly collect data from children. If you believe a child has provided us data, contact us immediately at <strong>papercraft271@gmail.com</strong>
           </Section>
 
           <Section title="10. Changes to This Policy">
@@ -135,7 +135,7 @@ export default function PrivacyPage() {
           <Section title="11. Contact Us">
             For any privacy questions or data requests:
             <br /><br />
-            <strong>Email:</strong> admin@papercraftai.in<br />
+            <strong>Email:</strong> papercraft271@gmail.com<br />
             <strong>Response time:</strong> Within 72 hours
           </Section>
 

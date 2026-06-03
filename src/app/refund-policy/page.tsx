@@ -83,7 +83,7 @@ export default function RefundPage() {
           </Section>
 
           <Section title="6. Technical Issues">
-            If you experience technical issues that prevent you from using Paptrix, contact us immediately at <strong>admin@papercraftai.in</strong>. We will either fix the issue or provide a refund regardless of the refund window.
+            If you experience technical issues that prevent you from using Paptrix, contact us immediately at <strong>papercraft271@gmail.com</strong>. We will either fix the issue or provide a refund regardless of the refund window.
           </Section>
 
           <Section title="7. Cancellation Policy">
@@ -97,7 +97,7 @@ export default function RefundPage() {
           </Section>
 
           <Section title="8. Disputed Charges">
-            If you see an unexpected charge, please contact us at <strong>admin@papercraftai.in</strong> before raising a dispute with your bank. We will resolve it quickly. Raising a chargeback without contacting us first may result in account suspension.
+            If you see an unexpected charge, please contact us at <strong>papercraft271@gmail.com</strong> before raising a dispute with your bank. We will resolve it quickly. Raising a chargeback without contacting us first may result in account suspension.
           </Section>
 
           <Section title="9. Contact for Refunds">

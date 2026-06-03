@@ -17,7 +17,7 @@ export default function TermsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
           <Section title="1. Acceptance of Terms">
-            By registering and using PaperCraft AI, you agree to these Terms of Service. If you do not agree, please do not use our service. These terms apply to all users including teachers, students, and institutions.
+            By registering and using Paptrix, you agree to these Terms of Service. If you do not agree, please do not use our service. These terms apply to all users including teachers, students, and institutions.
           </Section>
 
           <Section title="2. What Paptrix Does">
@@ -59,7 +59,7 @@ export default function TermsPage() {
           </Section>
 
           <Section title="7. Refunds">
-            We offer a 7-day refund policy. If you are not satisfied within 7 days of purchase, contact us at <strong>admin@papercraftai.in</strong> for a full refund. No refunds are issued after 7 days. For yearly plans, prorated refunds may be issued within 30 days.
+            We offer a 7-day refund policy. If you are not satisfied within 7 days of purchase, contact us at <strong>papercraft271@gmail.com</strong> for a full refund. No refunds are issued after 7 days. For yearly plans, prorated refunds may be issued within 30 days.
           </Section>
 
           <Section title="8. Things You Must Not Do">
@@ -95,7 +95,7 @@ export default function TermsPage() {
           <Section title="14. Contact Us">
             For any questions about these terms, contact us at:
             <br /><br />
-            <strong>Email:</strong> admin@papercraftai.in<br />
+            <strong>Email:</strong> papercraft271@gmail.com<br />
             
           </Section>
 
