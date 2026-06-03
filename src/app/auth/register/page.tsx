@@ -120,7 +120,7 @@ export default function RegisterPage() {
     try {
       await axios.post(`${API_BASE}/otp/verify`, { email: pendingEmail, otp });
 
-      toast.success('Email verified! Welcome to PaperCraft AI 🎉');
+      toast.success('Email verified! Welcome to Paptrix 🎉');
       if (pendingUser) {
         login(pendingUser.user, pendingUser.token);
       }
@@ -163,7 +163,7 @@ export default function RegisterPage() {
           <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl flex items-center justify-center">
             <FileSpreadsheet className="w-5 h-5 text-white" />
           </div>
-          <span className="text-xl font-bold">PaperCraft AI</span>
+          <span className="text-xl font-bold">Paptrix</span>
         </div>
 
         <AnimatePresence mode="wait">
