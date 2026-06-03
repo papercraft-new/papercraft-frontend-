@@ -99,7 +99,7 @@ export default function RegisterPage() {
       // Send OTP
       await axios.post(`${API_BASE}/otp/send`, { email: data.email });
 
-      toast.success('Account created! Check your email for the OTP.');
+      toast.success('Check your email for the OTP!');
       setStep('otp');
       startResendTimer();
     } catch (err: unknown) {
