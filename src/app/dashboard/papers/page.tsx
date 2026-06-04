@@ -157,14 +157,13 @@ const handleExportPdf = async (paper: Record<string, unknown>) => {
   try {
     toast.loading('Preparing PDF...', { id: 'pdf-' + paper.id });
 
-    // Fetch full paper with sections
     const res = await papersApi.getById(paper.id as string);
     const fullPaper = res.data.data;
 
     const ed = (fullPaper.examDetails || {}) as Record<string, unknown>;
     const sections = (fullPaper.sections || []) as Section[];
     const totalMarks = fullPaper.totalMarks as number;
-    const title = fullPaper.title as string || 'Question Paper';
+    const paperTitle = fullPaper.title as string || 'Question Paper';
 
     const dateStr = ed.date
       ? new Date(ed.date as string).toLocaleDateString('en-IN', {
@@ -174,9 +173,9 @@ const handleExportPdf = async (paper: Record<string, unknown>) => {
 
     const renderOptions = (options: Array<{ label: string; text: string }> | undefined) => {
       if (!options || options.length === 0) return '';
-      return `<div class="mcq-options">${options
-        .map(opt => `<div class="mcq-option"><span class="opt-label">(${opt.label})</span><span>${opt.text || '___'}</span></div>`)
-        .join('')}</div>`;
+      return `<div class="mcq-options">${options.map(opt =>
+        `<div class="mcq-option"><span class="opt-label">(${opt.label})</span><span>${opt.text || '___'}</span></div>`
+      ).join('')}</div>`;
     };
 
     const sectionsHTML = sections.map(section => {
@@ -197,13 +196,13 @@ const handleExportPdf = async (paper: Record<string, unknown>) => {
           <div class="q-row">
             <span class="q-num">${q.number}.</span>
             <span class="q-text">${q.text}</span>
-            <span class="q-marks"></span>
+            <span class="q-marks">[${q.marks}]</span>
           </div>${answerArea}
         </div>`;
       }).join('');
 
       return `<div class="section">
-        <div class="section-header">${section.title}${marksInfo ? `<span class="section-marks"> ${marksInfo}</span>` : ''}</div>
+        <div class="section-header">${section.title}${marksInfo ? ` ${marksInfo}` : ''}</div>
         ${section.description ? `<div class="section-desc">${section.description}</div>` : ''}
         ${questionsHTML}
       </div>`;
@@ -215,50 +214,68 @@ const handleExportPdf = async (paper: Record<string, unknown>) => {
         }</ol></div><div class="thin-div"></div>`
       : '';
 
-    const pw = window.open('', '_blank');
-    if (!pw) {
-      toast.error('Popup blocked.', { id: 'pdf-' + paper.id });
-      return;
+    const css = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:11px;color:#111;background:#fff}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm}.header{text-align:center;margin-bottom:8px}.inst-name{font-size:16px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#1a2e5a}.thick-div{border-top:2px solid #1a2e5a;margin:7px 0}.thin-div{border-top:1px solid #1a2e5a;margin:5px 0}.meta-table{width:100%;border-collapse:collapse;font-size:10.5px;margin:4px 0}.meta-table td{padding:2px 0}.paper-title{text-align:center;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#1a2e5a;margin:5px 0}.instructions{font-size:10px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.7}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #1a2e5a;padding:4px 8px;font-weight:bold;font-size:11px;text-transform:uppercase;color:#1a2e5a;background:#f0f4ff;margin:10px 0 8px}.section-desc{text-align:center;font-size:10px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:12px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0;padding-top:1px}.q-text{flex:1;line-height:1.6}.q-marks{font-weight:bold;font-size:10px;color:#1a2e5a;min-width:28px;text-align:right;flex-shrink:0;padding-top:1px}.mcq-options{display:grid;grid-template-columns:1fr 1fr;gap:5px 24px;margin-top:6px;margin-left:28px}.mcq-option{display:flex;gap:5px;font-size:10.5px}.opt-label{font-weight:bold;min-width:22px;flex-shrink:0}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px;font-size:10.5px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}.sign-table{width:100%;border-collapse:collapse;margin-top:6px}.sign-cell{width:33%;text-align:center;padding:0 12px}.sign-line{border-bottom:1px solid #333;height:22px;margin-bottom:4px}.sign-label{font-size:9px;color:#555}@media print{body{margin:0}.paper-wrap{padding:14mm}.question{page-break-inside:avoid}}`;
+
+    const fullHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${paperTitle}</title>
+  <style>${css}</style>
+</head>
+<body>
+  <div class="paper-wrap">
+    <div class="header">
+      <div class="inst-name">${ed.institutionName || 'Institution Name'}</div>
+      ${ed.institutionAddress ? `<div style="font-size:10px;color:#555">${ed.institutionAddress as string}</div>` : ''}
+    </div>
+    <div class="thick-div"></div>
+    <table class="meta-table">
+      <tr><td><strong>Subject:</strong> ${ed.subject || '—'}</td><td style="text-align:right"><strong>Date:</strong> ${dateStr}</td></tr>
+      <tr><td><strong>Class:</strong> ${ed.class || '—'}</td><td style="text-align:right"><strong>Duration:</strong> ${ed.duration || '3 Hours'}</td></tr>
+      <tr><td><strong>Exam:</strong> ${ed.examType || '—'}</td><td style="text-align:right"><strong>Max. Marks:</strong> ${totalMarks || '—'}</td></tr>
+    </table>
+    <div class="thin-div"></div>
+    <div class="paper-title">${ed.examType || 'Question Paper'}</div>
+    <div class="thin-div"></div>
+    ${instructionsHTML}
+    ${sectionsHTML}
+  </div>
+  <script>
+    window.onload = function() { window.print(); };
+  </script>
+</body>
+</html>`;
+
+    // Detect mobile
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      // Mobile: download HTML file
+      const blob = new Blob([fullHtml], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${(paperTitle).replace(/[^a-z0-9]/gi, '_').toLowerCase()}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Downloaded! Open the file and print/save as PDF.', { id: 'pdf-' + paper.id, duration: 4000 });
+    } else {
+      // Desktop: open and print
+      const pw = window.open('', '_blank');
+      if (!pw) {
+        toast.error('Popup blocked.', { id: 'pdf-' + paper.id });
+        return;
+      }
+      pw.document.write(fullHtml);
+      pw.document.close();
+      pw.focus();
+      setTimeout(() => { pw.print(); pw.close(); }, 600);
+      toast.success(`${paperTitle} — PDF ready!`, { id: 'pdf-' + paper.id });
     }
-
-    const css = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:16px;color:#111;background:#fff}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm}.header{text-align:center;margin-bottom:8px}.inst-name{font-size:22px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#1a2e5a}.inst-addr{font-size:14px;color:#555;margin-top:2px}.thick-div{border-top:2px solid #1a2e5a;margin:7px 0}.thin-div{border-top:1px solid #1a2e5a;margin:5px 0}.meta-table{width:100%;border-collapse:collapse;font-size:14.5px;margin:4px 0}.meta-table td{padding:2px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#1a2e5a;margin:5px 0}.instructions{font-size:14px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.7}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #1a2e5a;padding:4px 8px;font-weight:bold;font-size:18px;text-transform:uppercase;color:#1a2e5a;background:#f0f4ff;margin:10px 0 8px}.section-marks{font-weight:normal;font-size:13px;color:#444}.section-desc{text-align:center;font-size:13px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:12px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0;padding-top:1px}.q-text{flex:1;line-height:1.6}.q-marks{font-weight:bold;font-size:13px;color:#1a2e5a;min-width:28px;text-align:right;flex-shrink:0;padding-top:1px}.mcq-options{display:grid;grid-template-columns:1fr 1fr;gap:5px 24px;margin-top:6px;margin-left:28px}.mcq-option{display:flex;gap:5px;font-size:15.5px}.opt-label{font-weight:bold;min-width:22px;flex-shrink:0}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px;font-size:12.5px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}.sign-table{width:100%;border-collapse:collapse;margin-top:6px}.sign-cell{width:33%;text-align:center;padding:0 12px}.sign-line{border-bottom:1px solid #333;height:22px;margin-bottom:4px}.sign-label{font-size:12px;color:#555}@media print{body{margin:0}.paper-wrap{padding:14mm}.question{page-break-inside:avoid}}`;
-
-    pw.document.write(`<!DOCTYPE html><html><head><title>${title}</title><style>${css}</style></head><body>
-      <div class="paper-wrap"><div class="outer-border"><div class="inner-border">
-        <div class="header">
-          <div class="inst-name">${ed.institutionName || 'Institution Name'}</div>
-          ${ed.institutionAddress ? `<div class="inst-addr">${ed.institutionAddress as string}</div>` : ''}
-          ${ed.department ? `<div class="inst-addr">Dept. of ${ed.department as string}</div>` : ''}
-        </div>
-        <div class="thick-div"></div>
-        <table class="meta-table">
-          <tr><td><strong>Subject:</strong> ${ed.subject || '—'}${ed.subjectCode ? ` (${ed.subjectCode})` : ''}</td><td style="text-align:right"><strong>Date:</strong> ${dateStr}</td></tr>
-          <tr><td><strong>Class:</strong> ${ed.class || '—'}${ed.branch ? ` | ${ed.branch}` : ''}</td><td style="text-align:right"><strong>Duration:</strong> ${ed.duration || '3 Hours'}</td></tr>
-          <tr><td><strong>Max. Marks:</strong>  ${totalMarks || ed.totalMarks || '—'}</td><td style="text-align:right"><strong></strong></td></tr>
-          ${ed.academicYear ? `<tr><td><strong></strong> </td><td></td></tr>` : ''}
-        </table>
-        <div class="thin-div"></div>
-        <div class="paper-title">${ed.examType || 'Question Paper'}</div>
-        <div class="thin-div"></div>
-        ${instructionsHTML}
-        ${sectionsHTML}
-        <div class="thick-div" style="margin-top:24px"></div>
-        <table class="sign-table"><tr>
-          ${[]
-            .map(l => `<td class="sign-cell"><div class="sign-line"></div><div class="sign-label">${l}</div></td>`)
-            .join('')}
-        </tr></table>
-      </div></div></div>
-    </body></html>`);
-
-    pw.document.close();
-    pw.focus();
-    setTimeout(() => {
-      pw.print();
-      pw.close();
-    }, 600);
-
-    toast.success(`${title} — PDF ready!`, { id: 'pdf-' + paper.id });
 
   } catch {
     toast.error('PDF export failed.', { id: 'pdf-' + paper.id });
@@ -266,7 +283,6 @@ const handleExportPdf = async (paper: Record<string, unknown>) => {
     setPdfExportingId(null);
   }
 };
-
   // ── RENAME ────────────────────────────
   const handleRename = (paper: Record<string, unknown>) => {
     setRenameId(paper.id as string);
