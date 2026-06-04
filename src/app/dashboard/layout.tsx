@@ -27,9 +27,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isAdmin = user?.email === ADMIN_EMAIL && user?.role === 'ADMIN';
 
-  useEffect(() => {
-    if (!isAuthenticated) router.push('/auth/login');
-  }, [isAuthenticated, router]);
+ const [hydrated, setHydrated] = useState(false);
+
+useEffect(() => {
+  setHydrated(true);
+}, []);
+
+useEffect(() => {
+  if (!hydrated) return;
+  if (!isAuthenticated) {
+    router.push('/auth/login');
+  }
+}, [hydrated, isAuthenticated, router]);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -50,7 +59,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [mobileOpen]);
-
+if (!hydrated) return null;
   if (!isAuthenticated || !user) return null;
 
   const sections = ['Main', 'Library', 'AI Tools', 'Account', ...(isAdmin ? ['Admin'] : [])];
