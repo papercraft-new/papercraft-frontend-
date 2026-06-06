@@ -112,9 +112,9 @@ export default function AdminPage() {
       items: [
         { label: 'Free Plan — Papers/Month', value: '3', editable: true },
         { label: 'Free Plan — Exports/Month', value: '6', editable: true },
-        { label: 'Pro Plan — Papers/Month', value: '30', editable: true },
+        { label: 'Pro Plan — Papers/Month', value: '20', editable: true },
         { label: 'Pro Plan — Price', value: '₹399/month', editable: true },
-        { label: 'Institution Plan — Papers/Month', value: '70', editable: true },
+        { label: 'Institution Plan — Papers/Month', value: '50', editable: true },
         { label: 'Institution Plan — Price', value: '₹899/month', editable: true },
         { label: 'Max File Size', value: '50 MB', editable: true },
         { label: 'Max Files per Upload', value: '10', editable: true },

@@ -420,8 +420,8 @@ const plans = [
     cta: 'Start Pro Plan',
     href: '/auth/register?plan=pro',
     features: [
-      '30 papers per month',
-      '60 exports per month',
+      '20 papers per month',
+      '40 exports per month',
       'PDF + DOCX export',
       'Priority Claude AI OCR',
       'Priority support',
@@ -439,8 +439,8 @@ const plans = [
     cta: 'Get Institution Plan',
     href: '/auth/register?plan=institution',
     features: [
-      '70 papers per month',
-      '140 exports per month',
+      '50 papers per month',
+      '100 exports per month',
       'PDF + DOCX export',
       '50 team members',
       'Priority support',

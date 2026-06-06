@@ -50,8 +50,8 @@ export default function TermsPage() {
           <Section title="6. Payments and Plans">
             <ul>
               <li>Free plan: 3 papers per month at no cost.</li>
-              <li>Pro plan: 30 papers per month at ₹399/month.</li>
-              <li>Institution plan: 70 papers per month at ₹899/month.</li>
+              <li>Pro plan: 20 papers per month at ₹399/month.</li>
+              <li>Institution plan: 50 papers per month at ₹899/month.</li>
               <li>Payments are processed securely through Razorpay.</li>
               <li>We do not store your card or payment details.</li>
               <li>Plans renew automatically unless cancelled.</li>
