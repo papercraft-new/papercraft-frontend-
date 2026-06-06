@@ -160,9 +160,7 @@ export default function RegisterPage() {
       >
         {/* Logo */}
         <div className="flex items-center justify-center gap-2.5 mb-8">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl flex items-center justify-center">
-            <FileSpreadsheet className="w-5 h-5 text-white" />
-          </div>
+          <img src="/logo.png" alt="Paptrix" className="w-12 h-12 object-contain" style={{ mixBlendMode: 'screen' }} />
           <span className="text-xl font-bold">Paptrix</span>
         </div>
 

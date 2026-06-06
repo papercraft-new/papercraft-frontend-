@@ -82,14 +82,10 @@ if (!hydrated) return null;
         padding: '0 1rem', height: '56px',
         borderBottom: '1px solid hsl(217 33% 18%)', flexShrink: 0,
       }}>
-        <div style={{
-          width: '30px', height: '30px',
-          background: 'linear-gradient(135deg, #2563eb, #06b6d4)',
-          borderRadius: '8px', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', fontSize: '14px', flexShrink: 0,
-        }}>
-          📋
-        </div>
+        
+          <img src="/logo.png" alt="Paptrix" className="w-8 h-8 object-contain" />
+
+        
         <span style={{ fontWeight: 700, fontSize: '14px', color: '#f1f5f9' }}>
           Paptrix
         </span>

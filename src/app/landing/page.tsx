@@ -20,9 +20,8 @@ function Navbar() {
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-lg flex items-center justify-center">
-            <FileSpreadsheet className="w-4 h-4 text-white" />
-          </div>
+          <img src="/logo.png" alt="Paptrix" className="w-8 h-8 object-contain" style={{ mixBlendMode: 'screen' }} />
+
           <span className="font-bold text-[17px]">Paptrix</span>
         </div>
 
@@ -709,9 +708,7 @@ function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-lg flex items-center justify-center">
-                <FileSpreadsheet className="w-3.5 h-3.5 text-white" />
-              </div>
+              <img src="/logo.png" alt="Paptrix" className="w-8 h-8 object-contain" />
               <span className="font-bold">Paptrix</span>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
