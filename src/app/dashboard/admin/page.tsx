@@ -621,7 +621,22 @@ export default function AdminPage() {
       {tab === 'revenue' && (
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
-            <StatCard icon="💰" label="Monthly Revenue" value={formatINR((stats?.mrr || 0) * 100)} sub="This month" color="#fbbf24" />
+           
+           
+            <StatCard
+  icon="💰"
+  label="Monthly Revenue"
+  value={`₹${(
+    (((stats?.usersByPlan || []).find(
+      (p: { plan: string; count: number }) => p.plan === 'PRO'
+    )?.count || 0) * 399) +
+    (((stats?.usersByPlan || []).find(
+      (p: { plan: string; count: number }) => p.plan === 'INSTITUTION'
+    )?.count || 0) * 899)
+  ).toLocaleString('en-IN')}`}
+  sub="Based on active subscriptions"
+  color="#fbbf24"
+/>
             <StatCard icon="👑" label="Pro Users" value={(stats?.usersByPlan || []).find((p: { plan: string; count: number }) => p.plan === 'PRO')?.count || 0} sub="₹399/month each" color="#60a5fa" />
             <StatCard icon="🏢" label="Institution Users" value={(stats?.usersByPlan || []).find((p: { plan: string; count: number }) => p.plan === 'INSTITUTION')?.count || 0} sub="₹899/month each" color="#10b981" />
           </div>
@@ -645,8 +660,15 @@ export default function AdminPage() {
             <div style={{ marginTop: '1rem', padding: '12px', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: '10px', display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ fontSize: '14px', fontWeight: 700, color: '#60a5fa' }}>Total MRR</span>
               <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#60a5fa' }}>
-                {formatINR((stats?.mrr || 0) * 100)}
-              </span>
+  ₹{(
+    (((stats?.usersByPlan || []).find(
+      (p: { plan: string; count: number }) => p.plan === 'PRO'
+    )?.count || 0) * 399) +
+    (((stats?.usersByPlan || []).find(
+      (p: { plan: string; count: number }) => p.plan === 'INSTITUTION'
+    )?.count || 0) * 899)
+  ).toLocaleString('en-IN')}
+</span>
             </div>
           </div>
         </div>

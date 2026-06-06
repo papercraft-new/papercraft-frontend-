@@ -360,9 +360,10 @@ const [tempPaperName, setTempPaperName] = useState('');
   }
 };
 
-  const generatePaperHTML = () => {
+  const generatePaperHTML = (tmplId: string) => {
     const ed = examDetails;
     const totalMarksCalc = getTotalMarks();
+    const isClassic = tmplId === 'tpl_classic';
 
     const renderOptions = (opts: Array<{ label: string; text: string }> | undefined, qt: string) => {
       const { fixedOptions } = normalizeOptions(opts, qt);
@@ -375,11 +376,15 @@ const [tempPaperName, setTempPaperName] = useState('');
               { label: 'c', text: '___' },
               { label: 'd', text: '___' },
             ];
+      if (isClassic) {
+        // Classic: all 4 options in a single flex row
+        return `<div class="mcq-options-inline">${o
+          .map(x => `<span class="mcq-opt-inline"><span class="opt-label">(${x.label})</span> ${x.text}</span>`)
+          .join('')}</div>`;
+      }
+      // Default: 2-column grid
       return `<div class="mcq-options">${o
-        .map(
-          x =>
-            `<div class="mcq-option"><span class="opt-label">(${x.label})</span><span class="opt-text">${x.text}</span></div>`
-        )
+        .map(x => `<div class="mcq-option"><span class="opt-label">(${x.label})</span><span class="opt-text">${x.text}</span></div>`)
         .join('')}</div>`;
     };
 
@@ -415,7 +420,7 @@ const [tempPaperName, setTempPaperName] = useState('');
           .join('');
 
         return `<div class="section"><div class="section-header">${s.title}${
-          mi ? `<span class="section-marks"></span>` : ''
+          mi ? ` <span class="section-marks">${mi}</span>` : ''
         }</div>${s.description ? `<div class="section-desc">${s.description}</div>` : ''}${qHTML}</div>`;
       })
       .join('');
@@ -434,14 +439,41 @@ const [tempPaperName, setTempPaperName] = useState('');
         })
       : '—';
 
-return `<div class="page-border"></div><div class="paper-wrap"><div class="header"><div class="inst-name">${ed.institutionName||'Institution Name'}</div></div><div class="thick-div"></div><table class="meta-table"><tr><td><strong>Subject:</strong> ${ed.subject||'—'}</td><td style="text-align:right"><strong>Date:</strong> ${dateStr}</td></tr><tr><td><strong>Class:</strong> ${ed.class||'—'}</td><td style="text-align:right"><strong>Duration:</strong> ${ed.duration||'3 Hours'}</td></tr><tr><td><strong>Max. Marks:</strong> ${totalMarksCalc||ed.totalMarks||'—'}</td><td style="text-align:right"><strong></strong> </td></tr>${ed.academicYear?`<tr><td><strong></strong></td><td></td></tr>`:''}</table><div class="thin-div"></div><div class="paper-title">${ed.examType||'Question Paper'}</div><div class="thin-div"></div>${instHTML}${secHTML}<div class="thick-div signatures-divider"></div><table class="sign-table"><tr>${[].map(l=>`<td class="sign-cell"><div class="sign-line"></div><div class="sign-label">${l}</div></td>`).join('')}</tr></table></div>`;
+    if (isClassic) {
+      // ── CLASSIC HTML: minimal header row ──
+      return `<div class="paper-wrap">
+        <div class="inst-name">${ed.institutionName || 'Institution Name'}</div>
+        <div class="thin-div"></div>
+        <div class="classic-meta-row">
+          <span><strong>Name:</strong> ___________________</span>
+          <span><strong>Class:</strong> ${ed.class || '—'}</span>
+          <span><strong>Date:</strong> ${dateStr}</span>
+          <span><strong>Max. Marks:</strong> ${totalMarksCalc || ed.totalMarks || '—'}</span>
+        </div>
+        <div class="thin-div"></div>
+        <div class="paper-title">${ed.examType || 'Question Paper'}</div>
+        <div class="thin-div"></div>
+        ${instHTML}${secHTML}
+      </div>`;
+    }
+
+    // ── DEFAULT HTML: full header ──
+    return `<div class="page-border"></div><div class="paper-wrap"><div class="header"><div class="inst-name">${ed.institutionName||'Institution Name'}</div>${ed.institutionAddress ? `<div class="inst-addr">${ed.institutionAddress}</div>` : ''}</div><div class="thick-div"></div><table class="meta-table"><tr><td><strong>Subject:</strong> ${ed.subject||'—'}</td><td style="text-align:right"><strong>Date:</strong> ${dateStr}</td></tr><tr><td><strong>Class:</strong> ${ed.class||'—'}</td><td style="text-align:right"><strong>Duration:</strong> ${ed.duration||'3 Hours'}</td></tr><tr><td><strong>Max. Marks:</strong> ${totalMarksCalc||ed.totalMarks||'—'}</td><td style="text-align:right"></td></tr></table><div class="thin-div"></div><div class="paper-title">${ed.examType||'Question Paper'}</div><div class="thin-div"></div>${instHTML}${secHTML}<div class="thick-div"></div></div>`;
   };
 
  const handleExportPdf = () => {
   setIsExporting(true);
   try {
-    const htmlContent = generatePaperHTML();
-    const css = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:16px;color:#111;background:#fff}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm}.header{text-align:center;margin-bottom:8px}.inst-name{font-size:22px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#1a2e5a}.thick-div{border-top:2px solid #1a2e5a;margin:7px 0}.thin-div{border-top:1px solid #1a2e5a;margin:5px 0}.meta-table{width:100%;border-collapse:collapse;font-size:14.5px;margin:4px 0}.meta-table td{padding:2px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#1a2e5a;margin:5px 0}.instructions{font-size:14px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.7}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #1a2e5a;padding:4px 8px;font-weight:bold;font-size:18px;text-transform:uppercase;color:#1a2e5a;background:#f0f4ff;margin:10px 0 8px}.section-desc{text-align:center;font-size:13px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:12px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0;padding-top:1px}.q-text{flex:1;line-height:1.6}.q-marks{font-weight:bold;font-size:13px;color:#1a2e5a;min-width:28px;text-align:right;flex-shrink:0;padding-top:1px}.mcq-options{display:grid;grid-template-columns:1fr 1fr;gap:5px 24px;margin-top:6px;margin-left:28px}.mcq-option{display:flex;gap:5px;font-size:15.5px}.opt-label{font-weight:bold;min-width:22px;flex-shrink:0}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}@media print{body{margin:0}.paper-wrap{padding:14mm}.question{page-break-inside:avoid}}`;
+    const isClassic = templateId === 'tpl_classic';
+    const htmlContent = generatePaperHTML(templateId);
+
+    // ── DEFAULT CSS ──
+    const defaultCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:16px;color:#111;background:#fff}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm;position:relative}.header{text-align:center;margin-bottom:8px}.inst-name{font-size:22px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#1a2e5a}.inst-addr{font-size:12px;color:#555;margin-top:2px}.thick-div{border-top:2px solid #1a2e5a;margin:7px 0}.thin-div{border-top:1px solid #1a2e5a;margin:5px 0}.meta-table{width:100%;border-collapse:collapse;font-size:14.5px;margin:4px 0}.meta-table td{padding:2px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#1a2e5a;margin:5px 0;text-decoration:underline}.instructions{font-size:14px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.7}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #1a2e5a;padding:4px 8px;font-weight:bold;font-size:15px;text-transform:uppercase;color:#1a2e5a;background:#f0f4ff;margin:10px 0 8px}.section-marks{font-size:13px;font-weight:normal}.section-desc{text-align:center;font-size:13px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:12px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0;padding-top:1px}.q-text{flex:1;line-height:1.6}.q-marks{font-weight:bold;font-size:13px;color:#1a2e5a;min-width:28px;text-align:right;flex-shrink:0;padding-top:1px}.mcq-options{display:grid;grid-template-columns:1fr 1fr;gap:5px 24px;margin-top:6px;margin-left:28px}.mcq-option{display:flex;gap:5px;font-size:15.5px}.opt-label{font-weight:bold;min-width:22px;flex-shrink:0}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}@media print{body{margin:0}.paper-wrap{padding:14mm}.question{page-break-inside:avoid}}`;
+
+    // ── CLASSIC CSS ──
+    const classicCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:16px;color:#111;background:#fff}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm}.classic-meta-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:14px;padding-bottom:6px;border-bottom:1px solid #888;margin-bottom:6px}.thin-div{border-top:1px solid #555;margin:5px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#111;margin:5px 0}.instructions{font-size:14px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.7}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #333;padding:4px 8px;font-weight:bold;font-size:15px;text-transform:uppercase;color:#111;background:#f5f5f5;margin:10px 0 8px}.section-marks{font-size:13px;font-weight:normal}.section-desc{text-align:center;font-size:13px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:12px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0;padding-top:1px}.q-text{flex:1;line-height:1.6}.q-marks{font-weight:bold;font-size:13px;color:#111;min-width:28px;text-align:right;flex-shrink:0;padding-top:1px}.mcq-options-inline{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;margin-top:5px;margin-left:28px;font-size:15px}.mcq-opt-inline{white-space:nowrap}.opt-label{font-weight:bold}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}@media print{body{margin:0}.paper-wrap{padding:14mm}.question{page-break-inside:avoid}}`;
+
+    const css = isClassic ? classicCss : defaultCss;
 
     const fullHtml = `<!DOCTYPE html>
 <html>
@@ -498,6 +530,7 @@ return `<div class="page-border"></div><div class="paper-wrap"><div class="heade
     setIsExporting(false);
   }
 };
+
 
   const handleExportDocx = async () => {
     setIsExporting(true);
