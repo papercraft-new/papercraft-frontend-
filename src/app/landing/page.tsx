@@ -20,8 +20,7 @@ function Navbar() {
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-2.5">
-          <img src="/logo.png" alt="Paptrix" className="w-8 h-8 object-contain" style={{ mixBlendMode: 'screen' }} />
-
+          <img src="/logo.png" alt="Paptrix" style={{ width: 32, height: 32, objectFit: "contain" }} />
           <span className="font-bold text-[17px]">Paptrix</span>
         </div>
 
@@ -142,6 +141,34 @@ function Hero() {
               <div className="text-xs text-muted-foreground uppercase tracking-wider mt-1">{s.label}</div>
             </div>
           ))}
+        </motion.div>
+
+        {/* ── URGENCY STRIP ── */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          className="mt-6 mb-2 flex flex-wrap items-center justify-center gap-3"
+        >
+          
+          <div className="text-xs text-muted-foreground">· Free plan · No credit card</div>
+        </motion.div>
+
+        {/* ── TRUSTED BY STRIP ── */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.65 }}
+          className="mt-10 mb-4"
+        >
+          <p className="text-xs text-muted-foreground uppercase tracking-widest text-center mb-4">
+            Trusted by teachers from
+          </p>
+          <div className="flex flex-wrap justify-center gap-4 md:gap-8 text-muted-foreground/60 text-sm font-semibold">
+            {['DPS Schools', 'Allen Institute', 'Narayana Group', 'FIITJEE', 'Kendriya Vidyalaya', 'CBSE Schools'].map(name => (
+              <span key={name} className="border border-border/40 rounded-full px-4 py-1.5 text-xs">{name}</span>
+            ))}
+          </div>
         </motion.div>
 
         {/* Preview mockup */}
@@ -395,7 +422,7 @@ const plans = [
     period: 'forever',
     description: 'Perfect for trying out Paptrix',
     color: '#64748b',
-    badge: null,
+    badge: '✅ No Credit Card',
     popular: false,
     cta: 'Get Started Free',
     href: '/auth/register',
@@ -410,7 +437,7 @@ const plans = [
   {
     id: 'plan_pro',
     name: 'Pro',
-    price: '₹399',
+    price: '₹499',
     period: 'per month',
     description: 'For teachers who create papers regularly',
     color: '#3b82f6',
@@ -419,8 +446,8 @@ const plans = [
     cta: 'Start Pro Plan',
     href: '/auth/register?plan=pro',
     features: [
-      '20 papers per month',
-      '40 exports per month',
+      '30 papers per month',
+      '60 exports per month',
       'PDF + DOCX export',
       'Priority Claude AI OCR',
       'Priority support',
@@ -429,7 +456,7 @@ const plans = [
   {
     id: 'plan_institution',
     name: 'Institution',
-    price: '₹899',
+    price: '₹999',
     period: 'per month',
     description: 'For schools and coaching centres',
     color: '#f59e0b',
@@ -438,8 +465,8 @@ const plans = [
     cta: 'Get Institution Plan',
     href: '/auth/register?plan=institution',
     features: [
-      '50 papers per month',
-      '100 exports per month',
+      '70 papers per month',
+      '140 exports per month',
       'PDF + DOCX export',
       '50 team members',
       'Priority support',
@@ -708,7 +735,9 @@ function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-3">
-              <img src="/logo.png" alt="Paptrix" className="w-8 h-8 object-contain" />
+              <div className="w-7 h-7 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-lg flex items-center justify-center">
+                <FileSpreadsheet className="w-3.5 h-3.5 text-white" />
+              </div>
               <span className="font-bold">Paptrix</span>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
@@ -766,9 +795,70 @@ function Footer() {
 // MAIN EXPORT
 // ─────────────────────────────────────────
 
+// ─────────────────────────────────────────
+// WHATSAPP SHARE FLOAT
+// ─────────────────────────────────────────
+function WhatsAppFloat() {
+  const msg = encodeURIComponent(
+    "🎓 Check out Paptrix — AI tool that converts handwritten notes into professional question papers in 30 seconds! Free to use 👇\nhttps://paptrix.com"
+  );
+  return (
+    <a
+      href={`https://wa.me/?text=${msg}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Share on WhatsApp"
+      style={{
+        position: 'fixed',
+        bottom: '24px',
+        right: '24px',
+        zIndex: 999,
+        width: '56px',
+        height: '56px',
+        borderRadius: '50%',
+        background: 'linear-gradient(135deg, #25d366, #128c7e)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 4px 20px rgba(37,211,102,0.4)',
+        textDecoration: 'none',
+        transition: 'transform 0.2s, box-shadow 0.2s',
+      }}
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1.1)';
+        (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 6px 28px rgba(37,211,102,0.55)';
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1)';
+        (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 4px 20px rgba(37,211,102,0.4)';
+      }}
+    >
+      {/* WhatsApp SVG */}
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 2C8.268 2 2 8.268 2 16c0 2.49.643 4.827 1.768 6.857L2 30l7.34-1.92A13.93 13.93 0 0016 30c7.732 0 14-6.268 14-14S23.732 2 16 2zm0 25.5a11.43 11.43 0 01-5.826-1.594l-.418-.25-4.354 1.14 1.162-4.24-.273-.435A11.47 11.47 0 014.5 16C4.5 9.648 9.648 4.5 16 4.5S27.5 9.648 27.5 16 22.352 27.5 16 27.5zm6.29-8.61c-.345-.172-2.04-1.006-2.356-1.12-.317-.115-.547-.172-.778.173-.23.345-.893 1.12-1.095 1.35-.2.23-.403.26-.748.086-.345-.172-1.457-.537-2.775-1.713-1.026-.914-1.718-2.042-1.92-2.387-.2-.345-.022-.53.15-.702.156-.155.345-.403.518-.604.172-.202.23-.345.345-.575.115-.23.058-.432-.029-.604-.086-.172-.778-1.876-1.066-2.568-.28-.674-.565-.583-.778-.594l-.662-.011c-.23 0-.604.086-.92.432-.316.345-1.208 1.18-1.208 2.877s1.237 3.337 1.41 3.567c.172.23 2.434 3.715 5.897 5.21.824.355 1.467.567 1.969.727.827.263 1.58.226 2.174.137.663-.1 2.04-.834 2.328-1.638.287-.805.287-1.495.2-1.638-.086-.144-.316-.23-.66-.403z"/>
+      </svg>
+    </a>
+  );
+}
+
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {/* ── TOP SOCIAL PROOF BAR ── */}
+      <div style={{
+        background: 'linear-gradient(90deg, rgba(37,99,235,0.15), rgba(6,182,212,0.15))',
+        borderBottom: '1px solid rgba(59,130,246,0.2)',
+        padding: '8px 16px',
+        textAlign: 'center',
+        fontSize: '13px',
+        color: '#93c5fd',
+        fontWeight: 500,
+      }}>
+        🎉 <strong style={{ color: '#e2e8f0' }}>Free for all teachers</strong> · No credit card · 3 papers free ·{' '}
+        <a href="/auth/register" style={{ color: '#38bdf8', fontWeight: 700, textDecoration: 'underline' }}>
+          Join 800+ educators using Paptrix →
+        </a>
+      </div>
       <Navbar />
       <Hero />
       <Features />
@@ -776,6 +866,60 @@ export default function LandingPage() {
       <Pricing />
       <Testimonials />
       <FAQ />
+      {/* ── SHARE SECTION ── */}
+      <section style={{ padding: '60px 24px', textAlign: 'center', background: 'rgba(37,99,235,0.04)', borderTop: '1px solid rgba(59,130,246,0.1)', borderBottom: '1px solid rgba(59,130,246,0.1)' }}>
+        <div style={{ maxWidth: '560px', margin: '0 auto' }}>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>
+            📢 Help Fellow Teachers
+          </div>
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f1f5f9', marginBottom: '12px', lineHeight: 1.3 }}>
+            Know a teacher spending hours on papers?
+          </h2>
+          <p style={{ color: '#94a3b8', fontSize: '15px', marginBottom: '28px', lineHeight: 1.6 }}>
+            Share Paptrix with your school staff group. Takes 5 seconds — saves them 3 hours every week.
+          </p>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent("🎓 Paptrix converts handwritten notes into professional question papers in 30 seconds using AI! Free to use 👇 https://paptrix.com")}`}
+              target="_blank" rel="noopener noreferrer"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                background: 'linear-gradient(135deg,#25d366,#128c7e)',
+                color: '#fff', fontWeight: 700, fontSize: '14px',
+                padding: '12px 24px', borderRadius: '12px',
+                textDecoration: 'none', boxShadow: '0 4px 16px rgba(37,211,102,0.3)',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 32 32" fill="white"><path d="M16 2C8.268 2 2 8.268 2 16c0 2.49.643 4.827 1.768 6.857L2 30l7.34-1.92A13.93 13.93 0 0016 30c7.732 0 14-6.268 14-14S23.732 2 16 2zm6.29 19.89c-.345-.172-2.04-1.006-2.356-1.12-.317-.115-.547-.172-.778.173-.23.345-.893 1.12-1.095 1.35-.2.23-.403.26-.748.086-.345-.172-1.457-.537-2.775-1.713-1.026-.914-1.718-2.042-1.92-2.387-.2-.345-.022-.53.15-.702.156-.155.345-.403.518-.604.172-.202.23-.345.345-.575.115-.23.058-.432-.029-.604-.086-.172-.778-1.876-1.066-2.568-.28-.674-.565-.583-.778-.594l-.662-.011c-.23 0-.604.086-.92.432-.316.345-1.208 1.18-1.208 2.877s1.237 3.337 1.41 3.567c.172.23 2.434 3.715 5.897 5.21.824.355 1.467.567 1.969.727.827.263 1.58.226 2.174.137.663-.1 2.04-.834 2.328-1.638.287-.805.287-1.495.2-1.638-.086-.144-.316-.23-.66-.403z"/></svg>
+              Share on WhatsApp
+            </a>
+            <a
+              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent("Just discovered Paptrix — AI that converts handwritten notes into professional exam papers in 30 seconds 🎓 Free for teachers! https://paptrix.com")}`}
+              target="_blank" rel="noopener noreferrer"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.15)',
+                color: '#e2e8f0', fontWeight: 700, fontSize: '14px',
+                padding: '12px 24px', borderRadius: '12px', textDecoration: 'none',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.258 5.63 5.906-5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+              Share on X
+            </a>
+            <button
+              onClick={() => { navigator.clipboard.writeText('https://paptrix.com'); alert('Link copied! Share it with your colleagues.'); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+                color: '#94a3b8', fontWeight: 600, fontSize: '14px',
+                padding: '12px 20px', borderRadius: '12px', cursor: 'pointer',
+              }}
+            >
+              🔗 Copy Link
+            </button>
+          </div>
+        </div>
+      </section>
       <CtaBanner />
       <Footer />
       <a

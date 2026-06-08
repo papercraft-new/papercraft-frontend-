@@ -514,15 +514,15 @@ export default function BillingPage() {
             </thead>
             <tbody>
               {[
-                { feature: 'Papers/month', free: '3', pro: '20', inst: '50' },
-                { feature: 'Exports/month', free: '6', pro: '40', inst: '100' },
+                { feature: 'Papers/month', free: '3', pro: '30', inst: '70' },
+                { feature: 'Exports/month', free: '6', pro: '60', inst: '140' },
                 { feature: 'PDF Export', free: '✓', pro: '✓', inst: '✓' },
                 { feature: 'DOCX Export', free: '✗', pro: '✓', inst: '✓' },
                 { feature: 'Templates', free: '3', pro: 'All 6', inst: 'All 6' },
                 { feature: 'Custom Branding', free: '✗', pro: '✓', inst: '✓' },
                 { feature: 'Team Members', free: '1', pro: '1', inst: '50' },
                 { feature: 'Priority OCR', free: '✗', pro: '✓', inst: '✓' },
-                { feature: 'Price/month', free: '₹0', pro: '₹399', inst: '₹899' },
+                { feature: 'Price/month', free: '₹0', pro: '₹499', inst: '₹999' },
               ].map((row) => (
                 <tr key={row.feature} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                   <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{row.feature}</td>

@@ -10,6 +10,8 @@ import {
   Clock3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuthStore } from '@/store/authStore';
+import Link from 'next/link';
 
 const UPCOMING_FEATURES = [
   {
@@ -33,6 +35,56 @@ const UPCOMING_FEATURES = [
 ];
 
 export default function AiAssistantPage() {
+  const user = useAuthStore(s => s.user);
+  const planType = user?.subscription?.plan?.type ?? 'FREE';
+  const hasAccess = planType === 'INSTITUTION';
+
+  if (!hasAccess) {
+    return (
+      <div className="min-h-[calc(100vh-80px)] flex items-center justify-center px-6">
+        <div style={{
+          background: 'hsl(222 41% 12%)',
+          border: '1px solid rgba(139,92,246,0.3)',
+          borderRadius: '20px',
+          padding: '48px 36px',
+          textAlign: 'center',
+          maxWidth: '460px',
+          width: '100%',
+        }}>
+          <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🤖</div>
+          <h2 style={{ color: '#f1f5f9', fontSize: '22px', fontWeight: 800, marginBottom: '10px' }}>
+            AI Assistant
+          </h2>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)',
+            borderRadius: '20px', padding: '4px 14px', marginBottom: '16px',
+          }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Institution Plan Only
+            </span>
+          </div>
+          <p style={{ color: '#94a3b8', fontSize: '14px', lineHeight: 1.7, marginBottom: '28px' }}>
+            The AI Assistant is available exclusively on the <strong style={{ color: '#f1f5f9' }}>Institution plan</strong>.
+            Upgrade to unlock smart paper analysis, instant question generation, and improvement suggestions.
+          </p>
+          <Link
+            href="/dashboard/billing"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              background: 'linear-gradient(135deg,#7c3aed,#2563eb)',
+              color: '#fff', fontWeight: 700, fontSize: '14px',
+              padding: '12px 28px', borderRadius: '12px',
+              textDecoration: 'none', boxShadow: '0 4px 16px rgba(124,58,237,0.3)',
+            }}
+          >
+            🚀 Upgrade to Institution
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-[calc(100vh-80px)] bg-gradient-to-br from-background via-background to-muted/30 px-6 py-6 overflow-hidden">
       <div className="max-w-7xl mx-auto h-full">
