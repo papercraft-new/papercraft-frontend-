@@ -514,8 +514,8 @@ export default function BillingPage() {
             </thead>
             <tbody>
               {[
-                { feature: 'Papers/month', free: '3', pro: '30', inst: '70' },
-                { feature: 'Exports/month', free: '6', pro: '60', inst: '140' },
+                { feature: 'Papers/month', free: '3', pro: '20', inst: '50' },
+                { feature: 'Exports/month', free: '6', pro: '40', inst: '100' },
                 { feature: 'PDF Export', free: '✓', pro: '✓', inst: '✓' },
                 { feature: 'DOCX Export', free: '✗', pro: '✓', inst: '✓' },
                 { feature: 'Templates', free: '3', pro: 'All 6', inst: 'All 6' },
