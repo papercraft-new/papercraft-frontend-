@@ -161,14 +161,8 @@ function Hero() {
           transition={{ delay: 0.65 }}
           className="mt-10 mb-4"
         >
-          <p className="text-xs text-muted-foreground uppercase tracking-widest text-center mb-4">
-            Trusted by teachers from
-          </p>
-          <div className="flex flex-wrap justify-center gap-4 md:gap-8 text-muted-foreground/60 text-sm font-semibold">
-            {['DPS Schools', 'Allen Institute', 'Narayana Group', 'FIITJEE', 'Kendriya Vidyalaya', 'CBSE Schools'].map(name => (
-              <span key={name} className="border border-border/40 rounded-full px-4 py-1.5 text-xs">{name}</span>
-            ))}
-          </div>
+          
+          
         </motion.div>
 
         {/* Preview mockup */}
