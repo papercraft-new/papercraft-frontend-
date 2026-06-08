@@ -66,6 +66,11 @@ export default function UploadPage() {
   const MAX_PDF_MB  = 20;
   const planLabel   = planType === 'INSTITUTION' ? 'Institution' : planType === 'PRO' ? 'Pro' : 'Free';
 
+  // ─── paper limit check ─────────────────────────────────────────────────
+  const papersUsed    = user?.subscription?.papersUsedThisMonth ?? 0;
+  const papersAllowed = planType === 'INSTITUTION' ? 50 : planType === 'PRO' ? 20 : 3;
+  const isLimitReached = papersUsed >= papersAllowed;
+
   // ─── helpers ───────────────────────────────────────────────────────────
 
   const setStepStatus = (stepId: string, status: StepStatus) =>
@@ -259,6 +264,48 @@ export default function UploadPage() {
         </p>
       </div>
 
+      {/* ── LIMIT BANNER ── */}
+      {isLimitReached && (
+        <div style={{
+          background: 'rgba(239,68,68,0.08)',
+          border: '1px solid rgba(239,68,68,0.3)',
+          borderRadius: '14px',
+          padding: '16px 20px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '1.5rem' }}>🚫</span>
+            <div>
+              <div style={{ color: '#fca5a5', fontWeight: 700, fontSize: '14px', marginBottom: '2px' }}>
+                Monthly limit reached
+              </div>
+              <div style={{ color: '#94a3b8', fontSize: '13px' }}>
+                You've used <strong style={{ color: '#f87171' }}>{papersUsed}</strong> of{' '}
+                <strong style={{ color: '#f1f5f9' }}>{papersAllowed}</strong> papers this month ({planLabel} plan).
+                Upload and paste are disabled.
+              </div>
+            </div>
+          </div>
+          <a
+            href="/dashboard/billing"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              background: 'linear-gradient(135deg,#2563eb,#06b6d4)',
+              color: '#fff', fontWeight: 700, fontSize: '13px',
+              padding: '8px 18px', borderRadius: '10px',
+              textDecoration: 'none', whiteSpace: 'nowrap',
+            }}
+          >
+            🚀 Upgrade Plan
+          </a>
+        </div>
+      )}
+
       {/* TABS */}
       <div className="flex gap-1 rounded-xl bg-slate-100 p-1 mb-6 w-fit dark:bg-slate-800">
   {(['file', 'text'] as const).map((tab) => (
@@ -285,14 +332,15 @@ export default function UploadPage() {
 
               {/* Drop zone — always visible so user can keep adding files */}
               <div
-                {...getRootProps()}
+                {...(isLimitReached ? {} : getRootProps())}
+                style={isLimitReached ? { position: 'relative', opacity: 0.45, pointerEvents: 'none', userSelect: 'none' } : {}}
                 className={cn(
                   'upload-zone',
                   isDragActive && 'drag-over',
                   isProcessing && 'opacity-50 pointer-events-none',
                 )}
               >
-                <input {...getInputProps()} />
+                <input {...(isLimitReached ? { disabled: true } : getInputProps())} />
                 <div className="flex flex-col items-center gap-3">
                   <CloudUpload className="w-12 h-12 text-primary/60" />
                   <div className="text-center">
@@ -402,7 +450,7 @@ export default function UploadPage() {
                         {...getRootProps()}
                         className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-border text-sm text-muted-foreground hover:border-primary/40 hover:text-primary cursor-pointer transition-colors"
                       >
-                        <input {...getInputProps()} />
+                        <input {...(isLimitReached ? { disabled: true } : getInputProps())} />
                         <Plus className="w-4 h-4" /> Add more files
                       </div>
                     )}
@@ -431,7 +479,13 @@ export default function UploadPage() {
               <div className="flex items-center justify-between mt-3">
                 <span className="text-[11px] text-muted-foreground">{rawText.length} characters</span>
                 <Button
-                  onClick={processText}
+                  onClick={() => {
+                    if (isLimitReached) {
+                      toast.error('Monthly limit reached. Upgrade your plan to continue.');
+                      return;
+                    }
+                    processText();
+                  }}
                   disabled={isProcessing || rawText.trim().length < 10}
                   className="btn-gradient gap-2"
                 >

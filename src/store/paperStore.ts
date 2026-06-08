@@ -327,7 +327,7 @@ export const usePaperStore = create<PaperState>((set, get) => ({
       title: paper.title,
       examDetails: paper.examDetails,
       sections: paper.sections,
-      templateId: paper.templateId || 'tpl_classic',
+      templateId: ((paper.examDetails as unknown) as Record<string, unknown>)?._templateId as string || paper.templateId || 'tpl_classic',
       isDirty: false,
     }),
 
