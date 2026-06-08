@@ -82,10 +82,14 @@ if (!hydrated) return null;
         padding: '0 1rem', height: '56px',
         borderBottom: '1px solid hsl(217 33% 18%)', flexShrink: 0,
       }}>
-        
-          <img src="/logo.png" alt="Paptrix" className="w-8 h-8 object-contain" />
-
-        
+        <div style={{
+          width: '30px', height: '30px',
+          background: 'linear-gradient(135deg, #2563eb, #06b6d4)',
+          borderRadius: '8px', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', fontSize: '14px', flexShrink: 0,
+        }}>
+          📋
+        </div>
         <span style={{ fontWeight: 700, fontSize: '14px', color: '#f1f5f9' }}>
           Paptrix
         </span>
@@ -338,6 +342,136 @@ if (!hydrated) return null;
           .desktop-sidebar { display: none !important; }
           .mobile-topbar { display: flex !important; }
           .mobile-sidebar { display: flex !important; }
+        }
+
+        /* ── OVERVIEW PAGE (dashboard/page.tsx) ── */
+        @media (max-width: 767px) {
+          /* Stat cards: 2 columns on mobile */
+          .overview-stats {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          /* Body grid: stack vertically */
+          .overview-body {
+            grid-template-columns: 1fr !important;
+          }
+          /* Header: stack button below greeting */
+          .overview-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+          }
+          .overview-header button {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+          /* Recent papers table: hide subject & date cols, show only title + status */
+          .papers-table th:nth-child(2),
+          .papers-table td:nth-child(2),
+          .papers-table th:nth-child(3),
+          .papers-table td:nth-child(3),
+          .papers-table th:nth-child(5),
+          .papers-table td:nth-child(5) {
+            display: none !important;
+          }
+        }
+
+        /* ── BILLING PAGE ── */
+        @media (max-width: 767px) {
+          /* Plan cards: 1 column stack */
+          .billing-plans {
+            grid-template-columns: 1fr !important;
+          }
+          /* Current plan banner: stack content */
+          .billing-banner {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+          }
+          .billing-banner > div:last-child {
+            width: 100% !important;
+          }
+          .billing-banner button {
+            width: 100% !important;
+          }
+          /* Comparison table: make scrollable */
+          .billing-compare {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+          }
+          .billing-compare table {
+            min-width: 380px !important;
+          }
+          /* Payment history: scrollable */
+          .billing-history {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+          }
+          .billing-history table {
+            min-width: 400px !important;
+          }
+        }
+
+        /* ── SECTION & QUESTION EDITOR (builder edit step) ── */
+        @media (max-width: 767px) {
+          .sec-title-row { flex: 1 1 100% !important; }
+          .sec-actions-row { width: 100% !important; justify-content: flex-end !important; }
+          .q-meta-row { gap: 8px !important; }
+          .q-meta-row select { font-size: 11px !important; }
+        }
+
+        /* ── BUILDER PAGE ── */
+        @media (max-width: 767px) {
+          /* Top bar: compress */
+          .builder-topbar {
+            padding: 0 8px !important;
+            gap: 6px !important;
+          }
+          .builder-topbar input {
+            width: 110px !important;
+            font-size: 12px !important;
+          }
+          /* Step bar: smaller text */
+          .builder-stepbar {
+            font-size: 10px !important;
+          }
+          /* Action buttons row: wrap */
+          .builder-actions {
+            flex-wrap: wrap !important;
+            gap: 4px !important;
+          }
+          .builder-actions button {
+            font-size: 11px !important;
+            padding: 5px 8px !important;
+          }
+          /* Export buttons: stack on mobile */
+          .builder-export-row {
+            flex-direction: column !important;
+            gap: 8px !important;
+          }
+          .builder-export-row button {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+          /* Question cards: full width */
+          .question-card {
+            padding: 10px !important;
+          }
+          /* MCQ option grid: 2 col on mobile */
+          .mcq-grid-mobile {
+            grid-template-columns: 1fr 1fr !important;
+          }
+          /* Section editor header: wrap */
+          .section-header-row {
+            flex-wrap: wrap !important;
+            gap: 6px !important;
+          }
+          /* Marks/type row in question: stack */
+          .question-meta-row {
+            flex-direction: column !important;
+            gap: 8px !important;
+          }
+          .question-meta-row > * {
+            width: 100% !important;
+          }
         }
       `}</style>
     </div>

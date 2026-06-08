@@ -137,7 +137,7 @@ export const usePaperStore = create<PaperState>((set, get) => ({
   title: '',
   examDetails: defaultExamDetails,
   sections: [],
-  templateId: 'tpl_school',
+  templateId: 'tpl_classic',
   isDirty: false,
   isSaving: false,
   lastSaved: null,
@@ -327,7 +327,7 @@ export const usePaperStore = create<PaperState>((set, get) => ({
       title: paper.title,
       examDetails: paper.examDetails,
       sections: paper.sections,
-      templateId: paper.templateId || 'tpl_school',
+      templateId: paper.templateId || 'tpl_classic',
       isDirty: false,
     }),
 
@@ -337,7 +337,7 @@ export const usePaperStore = create<PaperState>((set, get) => ({
       title: 'Untitled Question Paper',
       examDetails: defaultExamDetails,
       sections: [],
-      templateId: 'tpl_school',
+      templateId: 'tpl_classic',
       isDirty: false,
     }),
 

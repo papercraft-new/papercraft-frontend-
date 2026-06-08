@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 const TEMPLATES = [
   {
     id: 'tpl_school',                        // matches backend TEMPLATE_CONFIGS key
-    name: 'Default',
+    name: 'Basic',
     description: 'Classic double-border layout for CBSE, ICSE and state board schools',
     icon: '🏫',
     badge: 'Most Popular',

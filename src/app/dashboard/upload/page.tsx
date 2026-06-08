@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
 import type { Section } from '@/store/paperStore';
 
@@ -41,7 +42,6 @@ const initialSteps: ProcessStep[] = [
   { id: 'finalize',  label: 'Structure Generation', description: 'Building your question paper structure...',  status: 'wait' },
 ];
 
-const MAX_FILES = 3;
 
 export default function UploadPage() {
   const router = useRouter();
@@ -58,6 +58,13 @@ export default function UploadPage() {
   const [activeTab, setActiveTab] = useState<'file' | 'text'>('file');
 
   const { loadFromOcr } = usePaperStore();
+
+  // ─── plan-based limits ─────────────────────────────────────────────────
+  const user = useAuthStore(s => s.user);
+  const planType = user?.subscription?.plan?.type ?? 'FREE';
+  const MAX_FILES   = planType === 'INSTITUTION' ? 4 : planType === 'PRO' ? 3 : 1;
+  const MAX_PDF_MB  = 20;
+  const planLabel   = planType === 'INSTITUTION' ? 'Institution' : planType === 'PRO' ? 'Pro' : 'Free';
 
   // ─── helpers ───────────────────────────────────────────────────────────
 
@@ -170,14 +177,34 @@ export default function UploadPage() {
 
   const onDrop = useCallback((accepted: File[]) => {
     if (!accepted.length) return;
+
+    // PDF size check — max 20 MB
+    const oversizedPdfs = accepted.filter(
+      f => f.type === 'application/pdf' && f.size > MAX_PDF_MB * 1024 * 1024
+    );
+    if (oversizedPdfs.length) {
+      toast.error(`PDF files must be under ${MAX_PDF_MB}MB. Please compress and retry.`);
+      return;
+    }
+
     setFileItems(prev => {
       const existing = new Set(prev.map(f => f.file.name));
       const fresh: UploadedFileItem[] = accepted
         .filter(f => !existing.has(f.name))
         .map(f => ({ file: f, status: 'queued' as FileStatus }));
-      return [...prev, ...fresh].slice(0, MAX_FILES);
+      const combined = [...prev, ...fresh];
+
+      // Plan source limit check
+      if (combined.length > MAX_FILES) {
+        toast.error(
+          `Your ${planLabel} plan allows up to ${MAX_FILES} source${MAX_FILES > 1 ? 's' : ''} per upload. ` +
+          (planType === 'FREE' ? 'Upgrade to Pro for more.' : planType === 'PRO' ? 'Upgrade to Institution for more.' : '')
+        );
+        return combined.slice(0, MAX_FILES);
+      }
+      return combined;
     });
-  }, []);
+  }, [MAX_FILES, MAX_PDF_MB, planLabel, planType]);
 
   // multiple:true makes react-dropzone add the `multiple` attribute to the
   // hidden <input type="file">, which is what the OS file picker reads.
@@ -188,9 +215,9 @@ export default function UploadPage() {
       'application/pdf': ['.pdf'],
     },
     maxFiles: MAX_FILES,
-    maxSize:  50 * 1024 * 1024,
+    maxSize:  50 * 1024 * 1024, // individual image limit stays 50MB; PDF checked in onDrop
     disabled: isProcessing,
-    multiple: true,
+    multiple: MAX_FILES > 1,
   });
 
   // ─── icon helpers ───────────────────────────────────────────────────────
@@ -275,7 +302,7 @@ export default function UploadPage() {
                                     : 'Drop files here or click to browse'}
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Up to {MAX_FILES} files · JPG, PNG, PDF, TIFF, HEIC · 50 MB each
+                      {planLabel} plan: up to {MAX_FILES} source{MAX_FILES > 1 ? 's' : ''} · PDF max {MAX_PDF_MB}MB · Images max 50MB
                     </p>
                   </div>
                   <div className="flex gap-2 flex-wrap justify-center">

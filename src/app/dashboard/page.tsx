@@ -52,7 +52,7 @@ export default function DashboardPage() {
     <div style={{ padding: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
 
       {/* HEADER */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '2rem' } as React.CSSProperties}>
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f1f5f9', marginBottom: '4px' }}>
             {greeting}, {firstName}! 👋
@@ -81,7 +81,7 @@ export default function DashboardPage() {
       </div>
 
       {/* STAT CARDS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+      <div className="overview-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
         {statCards.map((stat) => (
           <div key={stat.label} style={card}>
             <div style={{ fontSize: '24px', marginBottom: '8px' }}>{stat.icon}</div>
@@ -96,7 +96,7 @@ export default function DashboardPage() {
       </div>
 
       {/* BODY GRID */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.5rem' }}>
+      <div className="overview-body" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.5rem' }}>
 
         {/* QUICK ACTIONS */}
         <div>
@@ -156,7 +156,7 @@ export default function DashboardPage() {
                 </Link>
               </div>
             ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <table className="papers-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid hsl(217 33% 18%)' }}>
                     {['Title', 'Subject', 'Date', 'Status', ''].map((h) => (

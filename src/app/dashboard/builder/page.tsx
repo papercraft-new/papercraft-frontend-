@@ -16,14 +16,15 @@ const isMobile = typeof navigator !== 'undefined' &&
 // STEP DEFINITIONS
 // ─────────────────────────────────────────
 
-type StepId = 'upload' | 'edit' | 'details' | 'preview' | 'save';
+type StepId = 'upload' | 'template' | 'edit' | 'details' | 'preview' | 'save';
 
 const STEPS: { id: StepId; label: string; icon: string }[] = [
-  { id: 'upload', label: 'Upload & Extract', icon: '📤' },
-  { id: 'edit', label: 'Edit Questions', icon: '✏️' },
-  { id: 'details', label: 'Exam Details', icon: '⚙️' },
-  { id: 'preview', label: 'Preview', icon: '👁' },
-  { id: 'save', label: 'Save', icon: '💾' },
+  { id: 'upload',   label: 'Upload & Extract', icon: '📤' },
+  { id: 'template', label: 'Choose Template',  icon: '🎨' },
+  { id: 'edit',     label: 'Edit Questions',   icon: '✏️' },
+  { id: 'details',  label: 'Exam Details',     icon: '⚙️' },
+  { id: 'preview',  label: 'Preview',          icon: '👁' },
+  { id: 'save',     label: 'Save',             icon: '💾' },
 ];
 
 // ─────────────────────────────────────────
@@ -244,6 +245,7 @@ export default function BuilderPage() {
     sections,
     examDetails,
     templateId,
+    setTemplateId,
     addSection,
     updateSection,
     deleteSection,
@@ -271,8 +273,8 @@ const [tempPaperName, setTempPaperName] = useState('');
 
   useEffect(() => {
     if (currentStep === 'upload' && sections.length > 0 && getQuestionCount() > 0) {
-      advanceTo('edit', 1);
-      toast.success(`${getQuestionCount()} questions extracted! Review them below.`);
+      advanceTo('template', 1);
+      toast.success(`${getQuestionCount()} questions extracted! Now choose a template.`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sections]);
@@ -302,7 +304,7 @@ const [tempPaperName, setTempPaperName] = useState('');
 
   function handleDetailsClose() {
     setShowExamDetails(false);
-    if (currentStep === 'details') advanceTo('preview', 3);
+    if (currentStep === 'details') advanceTo('preview', 4);
   }
 
   const handleSave = async (
@@ -356,7 +358,7 @@ const [tempPaperName, setTempPaperName] = useState('');
   const id = await handleSave(title);
 
   if (id) {
-    advanceTo('save', 4);
+    advanceTo('save', 5);
   }
 };
 
@@ -415,7 +417,7 @@ const [tempPaperName, setTempPaperName] = useState('');
 
             return `<div class="question"><div class="q-row"><span class="q-num">${q.number}.</span><span class="q-text">${
               cleanedQuestionText || q.text
-            }</span><span class="q-marks"></span></div>${a}</div>`;
+            }</span><span </div>${a}</div>`;
           })
           .join('');
 
@@ -468,7 +470,7 @@ const [tempPaperName, setTempPaperName] = useState('');
     const htmlContent = generatePaperHTML(templateId);
 
     // ── DEFAULT CSS ──
-    const defaultCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:16px;color:#111;background:#fff}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm;position:relative}.header{text-align:center;margin-bottom:8px}.inst-name{font-size:22px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#1a2e5a}.inst-addr{font-size:12px;color:#555;margin-top:2px}.thick-div{border-top:2px solid #1a2e5a;margin:7px 0}.thin-div{border-top:1px solid #1a2e5a;margin:5px 0}.meta-table{width:100%;border-collapse:collapse;font-size:14.5px;margin:4px 0}.meta-table td{padding:2px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#1a2e5a;margin:5px 0;text-decoration:underline}.instructions{font-size:14px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.7}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #1a2e5a;padding:4px 8px;font-weight:bold;font-size:15px;text-transform:uppercase;color:#1a2e5a;background:#f0f4ff;margin:10px 0 8px}.section-marks{font-size:13px;font-weight:normal}.section-desc{text-align:center;font-size:13px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:12px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0;padding-top:1px}.q-text{flex:1;line-height:1.6}.q-marks{font-weight:bold;font-size:13px;color:#1a2e5a;min-width:28px;text-align:right;flex-shrink:0;padding-top:1px}.mcq-options{display:grid;grid-template-columns:1fr 1fr;gap:5px 24px;margin-top:6px;margin-left:28px}.mcq-option{display:flex;gap:5px;font-size:15.5px}.opt-label{font-weight:bold;min-width:22px;flex-shrink:0}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}@media print{body{margin:0}.paper-wrap{padding:14mm}.question{page-break-inside:avoid}}`;
+    const defaultCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:16px;color:#111;background:#fff}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm;border:3px double #1a2e5a;position:relative}.header{text-align:center;margin-bottom:8px}.inst-name{font-size:22px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#1a2e5a}.inst-addr{font-size:12px;color:#555;margin-top:2px}.thick-div{border-top:2px solid #1a2e5a;margin:7px 0}.thin-div{border-top:1px solid #1a2e5a;margin:5px 0}.meta-table{width:100%;border-collapse:collapse;font-size:14.5px;margin:4px 0}.meta-table td{padding:2px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#1a2e5a;margin:5px 0;text-decoration:underline}.instructions{font-size:14px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.7}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #1a2e5a;padding:4px 8px;font-weight:bold;font-size:15px;text-transform:uppercase;color:#1a2e5a;background:#f0f4ff;margin:10px 0 8px}.section-marks{font-size:13px;font-weight:normal}.section-desc{text-align:center;font-size:13px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:12px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0;padding-top:1px}.q-text{flex:1;line-height:1.6}.q-marks{font-weight:bold;font-size:13px;color:#1a2e5a;min-width:28px;text-align:right;flex-shrink:0;padding-top:1px}.mcq-options{display:grid;grid-template-columns:1fr 1fr;gap:5px 24px;margin-top:6px;margin-left:28px}.mcq-option{display:flex;gap:5px;font-size:15.5px}.opt-label{font-weight:bold;min-width:22px;flex-shrink:0}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}@media print{body{margin:0}.paper-wrap{padding:14mm}.question{page-break-inside:avoid}}`;
 
     // ── CLASSIC CSS ──
     const classicCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:16px;color:#111;background:#fff}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm}.classic-meta-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:14px;padding-bottom:6px;border-bottom:1px solid #888;margin-bottom:6px}.thin-div{border-top:1px solid #555;margin:5px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#111;margin:5px 0}.instructions{font-size:14px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.7}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #333;padding:4px 8px;font-weight:bold;font-size:15px;text-transform:uppercase;color:#111;background:#f5f5f5;margin:10px 0 8px}.section-marks{font-size:13px;font-weight:normal}.section-desc{text-align:center;font-size:13px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:12px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0;padding-top:1px}.q-text{flex:1;line-height:1.6}.q-marks{font-weight:bold;font-size:13px;color:#111;min-width:28px;text-align:right;flex-shrink:0;padding-top:1px}.mcq-options-inline{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;margin-top:5px;margin-left:28px;font-size:15px}.mcq-opt-inline{white-space:nowrap}.opt-label{font-weight:bold}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}@media print{body{margin:0}.paper-wrap{padding:14mm}.question{page-break-inside:avoid}}`;
@@ -607,6 +609,7 @@ const [tempPaperName, setTempPaperName] = useState('');
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: 'hsl(222 47% 7%)' }}>
       <div
+        className="builder-topbar"
         style={{
           height: '56px',
           background: cardBg,
@@ -637,7 +640,7 @@ const [tempPaperName, setTempPaperName] = useState('');
         <div style={{ flex: 1, overflow: 'hidden' }}>
           <StepBar current={currentStep} completedUpTo={completedUpTo} onStepClick={handleStepClick} />
         </div>
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+        <div className="builder-actions" style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
           <span style={{ fontSize: '11px', color: isDirty ? '#f59e0b' : '#64748b' }}>
             {isSaving ? '⏳ Saving…' : isDirty ? '● Unsaved' : '✓ Saved'}
           </span>
@@ -678,7 +681,7 @@ const [tempPaperName, setTempPaperName] = useState('');
                   style={btn('default')}
                   onClick={() => {
                     addSection('Section A');
-                    advanceTo('edit', 1);
+                    advanceTo('template', 1);
                   }}
                 >
                   ✏️ Start Manually
@@ -697,11 +700,158 @@ const [tempPaperName, setTempPaperName] = useState('');
                   <p style={{ color: '#86efac', fontSize: '13px', marginBottom: '10px' }}>
                     ✓ {getQuestionCount()} questions already extracted
                   </p>
-                  <button style={btn('success')} onClick={() => advanceTo('edit', 1)}>
+                  <button style={btn('success')} onClick={() => advanceTo('template', 1)}>
                     Continue to Edit →
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {currentStep === 'template' && (
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px 16px' }}>
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🎨</div>
+              <h2 style={{ color: '#f1f5f9', fontSize: '18px', fontWeight: 700, marginBottom: '6px' }}>
+                Choose a Template
+              </h2>
+              <p style={{ color: '#64748b', fontSize: '13px' }}>
+                Select how your question paper will look when exported as PDF or DOCX.
+              </p>
+            </div>
+
+            {/* Template Cards */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+              gap: '16px',
+              maxWidth: '680px',
+              margin: '0 auto 28px',
+            }}>
+              {[
+                {
+                  id: 'tpl_classic',
+                  name: 'Classic',
+                  badge: '⭐ Default',
+                  badgeColor: '#6366f1',
+                  desc: 'Clean layout with minimal top header — name, class, date, marks. MCQ options in a single row.',
+                  mcq: 'All 4 options in one line',
+                  preview: [
+                    { w: '60%', h: 4, mb: 8, color: '#374151' },
+                    { w: '100%', h: 2, mb: 6, color: '#d1d5db' },
+                    { w: '40%', h: 3, mb: 8, color: '#6b7280' },
+                    { w: '90%', h: 3, mb: 4, color: '#9ca3af' },
+                    { w: '100%', h: 2, mb: 4, color: '#e5e7eb', opts: true },
+                  ],
+                },
+                {
+                  id: 'tpl_school',
+                  name: 'Basic',
+                  badge: 'Classic',
+                  badgeColor: '#10b981',
+                  desc: 'Traditional double-border layout with full institution header, subject, class, and signature block.',
+                  mcq: '2×2 grid options',
+                  preview: [
+                    { w: '70%', h: 5, mb: 4, color: '#1a2e5a', bold: true },
+                    { w: '100%', h: 2, mb: 4, color: '#1a2e5a', double: true },
+                    { w: '100%', h: 3, mb: 4, color: '#6b7280', twoCol: true },
+                    { w: '50%', h: 4, mb: 8, color: '#1a2e5a', center: true },
+                    { w: '90%', h: 3, mb: 4, color: '#9ca3af' },
+                    { w: '100%', h: 2, mb: 0, color: '#e5e7eb', opts2x2: true },
+                  ],
+                },
+              ].map(tmpl => {
+                const isSelected = templateId === tmpl.id;
+                return (
+                  <div
+                    key={tmpl.id}
+                    onClick={() => setTemplateId(tmpl.id)}
+                    style={{
+                      background: isSelected ? 'rgba(59,130,246,0.08)' : 'hsl(222 41% 12%)',
+                      border: `2px solid ${isSelected ? '#3b82f6' : 'hsl(217 33% 22%)'}`,
+                      borderRadius: '14px',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    {/* Mini paper preview */}
+                    <div style={{
+                      background: '#fff',
+                      margin: '12px 12px 0',
+                      borderRadius: '6px',
+                      padding: '10px',
+                      height: '90px',
+                      overflow: 'hidden',
+                      position: 'relative',
+                      border: tmpl.id === 'tpl_school' ? '2px double #1a2e5a' : '1px solid #e5e7eb',
+                    }}>
+                      {/* Classic preview */}
+                      {tmpl.id === 'tpl_classic' && (
+                        <>
+                          <div style={{ textAlign: 'center', fontSize: '7px', fontWeight: 800, color: '#111', textTransform: 'uppercase', marginBottom: '3px' }}>Institution Name</div>
+                          <div style={{ borderTop: '1px solid #888', marginBottom: '3px' }} />
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '5px', color: '#444', marginBottom: '3px' }}>
+                            <span>Name: _______</span><span>Class: X</span><span>Date: —</span><span>Marks: 30</span>
+                          </div>
+                          <div style={{ borderTop: '1px solid #888', marginBottom: '4px' }} />
+                          <div style={{ fontSize: '5px', color: '#555', marginBottom: '3px' }}>1. Sample question text here</div>
+                          <div style={{ display: 'flex', gap: '6px', fontSize: '4.5px', color: '#666', marginLeft: '8px' }}>
+                            <span><b>(a)</b> Opt A</span><span><b>(b)</b> Opt B</span><span><b>(c)</b> Opt C</span><span><b>(d)</b> Opt D</span>
+                          </div>
+                        </>
+                      )}
+                      {/* Basic preview */}
+                      {tmpl.id === 'tpl_school' && (
+                        <>
+                          <div style={{ textAlign: 'center', fontSize: '7px', fontWeight: 800, color: '#1a2e5a', textTransform: 'uppercase', marginBottom: '2px' }}>Institution Name</div>
+                          <div style={{ borderTop: '2px solid #1a2e5a', marginBottom: '2px' }} />
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '5px', color: '#444', marginBottom: '2px' }}>
+                            <span>Subject: Math</span><span>Date: —</span>
+                          </div>
+                          <div style={{ borderTop: '1px solid #1a2e5a', marginBottom: '3px' }} />
+                          <div style={{ fontSize: '5px', color: '#555', marginBottom: '3px' }}>1. Sample question text here</div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px', marginLeft: '8px', fontSize: '4.5px', color: '#666' }}>
+                            <span><b>(a)</b> Option A</span><span><b>(b)</b> Option B</span>
+                            <span><b>(c)</b> Option C</span><span><b>(d)</b> Option D</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div style={{ padding: '10px 12px 14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9' }}>{tmpl.name}</span>
+                        <span style={{
+                          fontSize: '10px', fontWeight: 600, padding: '2px 7px', borderRadius: '10px',
+                          background: `${tmpl.badgeColor}20`, color: tmpl.badgeColor,
+                        }}>{tmpl.badge}</span>
+                        {isSelected && (
+                          <span style={{ marginLeft: 'auto', fontSize: '11px', color: '#3b82f6', fontWeight: 700 }}>✓ Selected</span>
+                        )}
+                      </div>
+                      <p style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.5, marginBottom: '6px' }}>{tmpl.desc}</p>
+                      <div style={{ fontSize: '10px', color: '#94a3b8', background: 'hsl(222 47% 7%)', padding: '4px 8px', borderRadius: '5px' }}>
+                        📋 MCQ: {tmpl.mcq}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Bottom action buttons */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <button style={btn('ghost')} onClick={goPrev}>← Back</button>
+              <button
+                style={btn('primary')}
+                onClick={() => advanceTo('edit', 2)}
+              >
+                Continue with {templateId === 'tpl_classic' ? 'Classic' : 'Basic'} →
+              </button>
             </div>
           </div>
         )}
@@ -801,7 +951,7 @@ const [tempPaperName, setTempPaperName] = useState('');
                 <button style={btn('warning')} onClick={() => setShowExamDetails(true)}>
                   ⚙️ Open Details Form
                 </button>
-                <button style={btn('primary')} onClick={() => advanceTo('preview', 3)}>
+                <button style={btn('primary')} onClick={() => advanceTo('preview', 4)}>
                   Skip to Preview →
                 </button>
               </div>
@@ -1013,7 +1163,7 @@ const [tempPaperName, setTempPaperName] = useState('');
   const id = await handleSave(paperName);
 
   if (id) {
-    advanceTo('save', 4);
+    advanceTo('save', 5);
   }
 }}
         >
@@ -1056,164 +1206,87 @@ function SectionEditor({
   const border = '1px solid hsl(217 33% 18%)';
   return (
     <div style={{ background: 'hsl(222 47% 7%)', border, borderRadius: '10px', marginBottom: '10px', overflow: 'hidden' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '8px 12px',
-          background: 'hsl(222 30% 14%)',
-          borderBottom: isExpanded ? border : 'none',
-        }}
-      >
-        <span style={{ color: '#64748b', fontSize: '12px', cursor: 'pointer' }} onClick={onToggle}>
-          {isExpanded ? '▼' : '▶'}
-        </span>
-        <input
-          value={section.title}
-          onChange={e => onUpdate({ title: e.target.value })}
-          onClick={e => e.stopPropagation()}
-          style={{
-            flex: 1,
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            color: '#f1f5f9',
-            fontSize: '13px',
-            fontWeight: 600,
-          }}
-          placeholder="Section title..."
-        />
-        <span
-          style={{
-            fontSize: '11px',
-            color: '#64748b',
-            background: 'hsl(222 47% 7%)',
-            padding: '2px 8px',
-            borderRadius: '5px',
-            border,
-          }}
-        >
-          {section.questions.length} Q ·{' '}
-{section.questions.reduce((sum, q) => sum + q.marks, 0)} marks
-        </span>
-        <div
-  style={{
-    color: 'yellow',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    background: 'rgba(59,130,246,0.08)',
-    border: '1px solid rgba(59,130,246,0.18)',
-    borderRadius: '10px',
-    padding: '5px 10px',
-    minWidth: 'fit-content',
-  }}
->Assign Marks / Q
-  <span
-    title="Assign marks to all questions"
-    style={{
-      fontSize: '13px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '24px',
-      height: '24px',
-      borderRadius: '6px',
-      background: 'rgba(59,130,246,0.15)',
-      color: '#60a5fa',
-      flexShrink: 0,
-    }}
-  >
-    ✒️
-  </span>
+      {/* ── SECTION HEADER ── */}
+      <div className="sec-header" style={{
+        display: 'flex', flexWrap: 'wrap', alignItems: 'center',
+        gap: '6px', padding: '8px 10px',
+        background: 'hsl(222 30% 14%)',
+        borderBottom: isExpanded ? border : 'none',
+      }}>
+        {/* Row 1: toggle + title + stats (always visible) */}
+        <div className="sec-title-row" style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+          <span style={{ color: '#64748b', fontSize: '12px', cursor: 'pointer', flexShrink: 0 }} onClick={onToggle}>
+            {isExpanded ? '▼' : '▶'}
+          </span>
+          <input
+            value={section.title}
+            onChange={e => onUpdate({ title: e.target.value })}
+            onClick={e => e.stopPropagation()}
+            style={{
+              flex: 1, minWidth: 0,
+              background: 'transparent', border: 'none', outline: 'none',
+              color: '#f1f5f9', fontSize: '13px', fontWeight: 600,
+            }}
+            placeholder="Section title..."
+          />
+          <span style={{
+            fontSize: '11px', color: '#64748b', whiteSpace: 'nowrap',
+            background: 'hsl(222 47% 7%)', padding: '2px 7px',
+            borderRadius: '5px', border, flexShrink: 0,
+          }}>
+            {section.questions.length}Q · {section.questions.reduce((s, q) => s + q.marks, 0)}m
+          </span>
+        </div>
 
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-    <span
-      style={{
-        fontSize: '9px',
-        color: '#64748b',
-        textTransform: 'uppercase',
-        letterSpacing: '0.06em',
-        lineHeight: 1,
-      }}
-    >
-      Marks / Q
-    </span>
-
-    <input
-      type="number"
-      min={1}
-      value={section.marksPerQuestion || ''}
-      onChange={e => {
-        const marks = parseInt(e.target.value, 10) || 1;
-
-        onUpdate({
-          marksPerQuestion: marks,
-          questions: section.questions.map(q => ({
-            ...q,
-            marks,
-          })),
-        });
-      }}
-      placeholder="0"
-      style={{
-        width: '52px',
-        background: 'transparent',
-        border: 'none',
-        outline: 'none',
-        color: '#f1f5f9',
-        fontSize: '14px',
-        fontWeight: 700,
-        padding: 0,
-      }}
-    />
-  </div>
-</div>
-        <button
-          onClick={e => {
-            e.stopPropagation();
-            onAddQuestion();
-          }}
-          style={{
-            background: 'rgba(59,130,246,0.15)',
-            border: 'none',
-            color: '#60a5fa',
-            borderRadius: '6px',
-            padding: '3px 8px',
-            cursor: 'pointer',
-            fontSize: '12px',
-            fontWeight: 600,
-          }}
-        >
-          + Add Q
-        </button>
-        <button
-          onClick={e => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          style={{
-            background: 'rgba(239,68,68,0.1)',
-            border: 'none',
-            color: '#f87171',
-            borderRadius: '6px',
-            padding: '3px 8px',
-            cursor: 'pointer',
-            fontSize: '12px',
-          }}
-        >
-          🗑
-        </button>
+        {/* Row 2 (on mobile wraps below): marks input + buttons */}
+        <div className="sec-actions-row" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          {/* Marks per question */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '5px',
+            background: 'rgba(59,130,246,0.08)',
+            border: '1px solid rgba(59,130,246,0.18)',
+            borderRadius: '8px', padding: '4px 8px',
+          }}>
+            <span style={{ fontSize: '16px', color: '#b2fa09', whiteSpace: 'nowrap' }}>Marks/Q</span>
+            <input
+              type="number" min={1}
+              value={section.marksPerQuestion || ''}
+              onChange={e => {
+                const marks = parseInt(e.target.value, 10) || 1;
+                onUpdate({ marksPerQuestion: marks, questions: section.questions.map(q => ({ ...q, marks })) });
+              }}
+              placeholder="—"
+              style={{
+                width: '40px', background: 'transparent', border: 'none', outline: 'none',
+                color: '#f1f5f9', fontSize: '13px', fontWeight: 700, padding: 0,
+              }}
+            />
+          </div>
+          <button
+            onClick={e => { e.stopPropagation(); onAddQuestion(); }}
+            style={{
+              background: 'rgba(59,130,246,0.15)', border: 'none', color: '#60a5fa',
+              borderRadius: '6px', padding: '5px 10px', cursor: 'pointer',
+              fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap',
+            }}
+          >+ Add Q</button>
+          <button
+            onClick={e => { e.stopPropagation(); onDelete(); }}
+            style={{
+              background: 'rgba(239,68,68,0.1)', border: 'none', color: '#f87171',
+              borderRadius: '6px', padding: '5px 8px', cursor: 'pointer', fontSize: '13px',
+            }}
+          >🗑</button>
+        </div>
       </div>
+
+      {/* ── QUESTIONS ── */}
       {isExpanded && (
         <div style={{ padding: '8px' }}>
           {section.questions.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '16px', fontSize: '12px', color: '#64748b' }}>
               No questions yet.{' '}
-              <span style={{ color: '#60a5fa', cursor: 'pointer' }} onClick={onAddQuestion}>
-                Add one →
-              </span>
+              <span style={{ color: '#60a5fa', cursor: 'pointer' }} onClick={onAddQuestion}>Add one →</span>
             </div>
           ) : (
             section.questions.map(q => (
@@ -1281,67 +1354,54 @@ const displayOptions: MCQOption[] =
 const displayText = cleanedQuestionText || question.text;
   return (
     <div style={{ background: 'hsl(222 41% 12%)', border, borderRadius: '8px', padding: '10px 12px', marginBottom: '8px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-        <span
-          style={{
-            fontSize: '11px',
-            fontWeight: 700,
-            color: '#60a5fa',
-            background: 'rgba(59,130,246,0.1)',
-            padding: '2px 8px',
-            borderRadius: '5px',
-            flexShrink: 0,
-          }}
-        >
-          Q{question.number}
-        </span>
-        <select
-          value={question.type}
-          onChange={e => onUpdate({ type: e.target.value as Question['type'] })}
-          style={{ ...inputStyle, cursor: 'pointer' }}
-        >
-          {QUESTION_TYPES.map(t => (
-            <option key={t} value={t}>
-              {t.replace('_', ' ')}
-            </option>
-          ))}
-        </select>
-        <select
-          value={question.difficulty || 'MEDIUM'}
-          onChange={e => onUpdate({ difficulty: e.target.value as Question['difficulty'] })}
-          style={{ ...inputStyle, cursor: 'pointer', width: '90px' }}
-        >
-          {['EASY', 'MEDIUM', 'HARD'].map(d => (
-            <option key={d} value={d}>
-              {d}
-            </option>
-          ))}
-        </select>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto' }}>
+      {/* ── Q META ROW: wraps on mobile ── */}
+      <div className="q-meta-row" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+        {/* Left: Q number + type + difficulty */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+          <span style={{
+            fontSize: '11px', fontWeight: 700, color: '#60a5fa',
+            background: 'rgba(59,130,246,0.1)', padding: '2px 8px',
+            borderRadius: '5px', flexShrink: 0,
+          }}>
+            Q{question.number}
+          </span>
+          <select
+            value={question.type}
+            onChange={e => onUpdate({ type: e.target.value as Question['type'] })}
+            style={{ ...inputStyle, cursor: 'pointer', flex: 1, minWidth: 0 }}
+          >
+            {QUESTION_TYPES.map(t => (
+              <option key={t} value={t}>{t.replace('_', ' ')}</option>
+            ))}
+          </select>
+          <select
+            value={question.difficulty || 'MEDIUM'}
+            onChange={e => onUpdate({ difficulty: e.target.value as Question['difficulty'] })}
+            style={{ ...inputStyle, cursor: 'pointer', width: '80px', flexShrink: 0 }}
+          >
+            {['EASY', 'MEDIUM', 'HARD'].map(d => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+        </div>
+        {/* Right: marks + delete */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           <input
             type="number"
             value={question.marks}
             onChange={e => onUpdate({ marks: parseInt(e.target.value, 10) || 1 })}
-            min={1}
-            max={20}
+            min={1} max={20}
             style={{ ...inputStyle, width: '44px', textAlign: 'center' }}
           />
           <span style={{ fontSize: '11px', color: '#64748b' }}>marks</span>
+          <button
+            onClick={onDelete}
+            style={{
+              background: 'rgba(239,68,68,0.1)', border: 'none', color: '#f87171',
+              borderRadius: '5px', padding: '4px 8px', cursor: 'pointer', fontSize: '13px',
+            }}
+          >🗑</button>
         </div>
-        <button
-          onClick={onDelete}
-          style={{
-            background: 'rgba(239,68,68,0.1)',
-            border: 'none',
-            color: '#f87171',
-            borderRadius: '5px',
-            padding: '3px 7px',
-            cursor: 'pointer',
-            fontSize: '11px',
-          }}
-        >
-          🗑
-        </button>
       </div>
 
       <textarea

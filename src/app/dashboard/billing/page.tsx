@@ -251,7 +251,7 @@ export default function BillingPage() {
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '12px',
-        }}>
+        }} className="billing-banner">
           <div>
             <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>
               Current Plan
@@ -327,7 +327,7 @@ export default function BillingPage() {
           Loading plans...
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+        <div className="billing-plans" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
           {plans.map((plan) => {
             const colors = PLAN_COLORS[plan.type] || PLAN_COLORS.FREE;
             const isCurrent = currentPlan?.type === plan.type;
@@ -498,7 +498,7 @@ export default function BillingPage() {
         <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9', marginBottom: '1rem' }}>
           📊 Plan Comparison
         </div>
-        <div style={{ overflowX: 'auto' }}>
+        <div className="billing-compare" style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr>
@@ -544,7 +544,7 @@ export default function BillingPage() {
           <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9', marginBottom: '1rem' }}>
             💳 Payment History
           </div>
-          <div style={{ overflowX: 'auto' }}>
+          <div className="billing-history" style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr>
