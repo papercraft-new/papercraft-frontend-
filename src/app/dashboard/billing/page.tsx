@@ -291,7 +291,7 @@ export default function BillingPage() {
         <span style={{ fontSize: '13px', color: billingCycle === 'monthly' ? '#f1f5f9' : '#64748b', fontWeight: billingCycle === 'monthly' ? 700 : 400 }}>
           Monthly
         </span>
-        {/*<button
+        <button
           onClick={() => setBillingCycle(prev => prev === 'monthly' ? 'yearly' : 'monthly')}
           style={{
             width: '48px', height: '26px',
@@ -312,11 +312,11 @@ export default function BillingPage() {
             background: '#fff',
             transition: 'left 0.2s',
           }} />
-        </button>*/}
+        </button>
         <span style={{ fontSize: '13px', color: billingCycle === 'yearly' ? '#f1f5f9' : '#64748b', fontWeight: billingCycle === 'yearly' ? 700 : 400 }}>
-          
+          Yearly
           <span style={{ marginLeft: '6px', fontSize: '11px', color: '#10b981', fontWeight: 700 }}>
-      
+            Save up to 2 months
           </span>
         </span>
       </div>
@@ -417,31 +417,20 @@ export default function BillingPage() {
                 <div style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {[
                     {
-                      text: plan.papersPerMonth === -1
-                        ? 'Unlimited papers/month'
+                      text: billingCycle === 'yearly'
+                        ? `${plan.type === 'PRO' ? 250 : plan.type === 'INSTITUTION' ? 650 : plan.type === 'FREE' ? 36 : plan.papersPerMonth * 12} papers/year`
                         : `${plan.papersPerMonth} papers/month`,
-                      included: true,
-                    },
-                    {
-                      text: plan.exportsPerMonth === -1
-                        ? 'Unlimited exports'
-                        : `${plan.exportsPerMonth} exports/month`,
                       included: true,
                     },
                     { text: 'PDF export', included: true },
                     { text: 'DOCX export', included: plan.hasDocxExport },
-                    { text: 'Custom branding', included: plan.hasCustomBranding },
-                    { text: 'All 6 templates', included: plan.type !== 'FREE' },
+                    { text: 'All 2 templates', included: true },
                     {
-                      text: plan.hasTeamAccess
-                        ? `${plan.maxTeamMembers} team members`
-                        : 'Team access',
+                      text: '5 team members',
                       included: plan.hasTeamAccess,
                     },
+                    { text: 'AI Assistant', included: plan.type === 'INSTITUTION' },
                     { text: 'Priority support', included: plan.type !== 'FREE' },
-                    ...(plan.features || []).filter(f =>
-                      !['PDF export', 'DOCX export', 'Custom branding'].some(x => f.includes(x))
-                    ).slice(0, 2).map(f => ({ text: f, included: true })),
                   ].map((feature, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: feature.included ? '#94a3b8' : '#475569' }}>
                       <span style={{ color: feature.included ? '#10b981' : '#475569', fontWeight: 700, fontSize: '13px', flexShrink: 0 }}>
@@ -514,13 +503,13 @@ export default function BillingPage() {
             </thead>
             <tbody>
               {[
-                { feature: 'Papers/month', free: '3', pro: '30', inst: '70' },
-                { feature: 'Exports/month', free: '6', pro: '60', inst: '140' },
+                { feature: 'Papers/month', free: '3', pro: '20', inst: '50' },
+                { feature: 'Exports/month', free: '6', pro: '40', inst: '100' },
                 { feature: 'PDF Export', free: '✓', pro: '✓', inst: '✓' },
                 { feature: 'DOCX Export', free: '✗', pro: '✓', inst: '✓' },
-                { feature: 'Templates', free: '3', pro: 'All 6', inst: 'All 6' },
-                { feature: 'Custom Branding', free: '✗', pro: '✓', inst: '✓' },
-                { feature: 'Team Members', free: '1', pro: '1', inst: '50' },
+                { feature: 'Templates', free: '2', pro: 'All 2', inst: 'All 2' },
+                { feature: 'Contact Support', free: '✗', pro: '✓', inst: '✓' },
+                { feature: 'Team Members', free: '1', pro: '1', inst: '5' },
                 { feature: 'Priority OCR', free: '✗', pro: '✓', inst: '✓' },
                 { feature: 'Price/month', free: '₹0', pro: '₹499', inst: '₹999' },
               ].map((row) => (

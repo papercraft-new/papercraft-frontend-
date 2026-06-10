@@ -150,7 +150,7 @@ function Hero() {
           transition={{ delay: 0.6 }}
           className="mt-6 mb-2 flex flex-wrap items-center justify-center gap-3"
         >
-          
+         
           <div className="text-xs text-muted-foreground">· Free plan · No credit card</div>
         </motion.div>
 
@@ -161,7 +161,9 @@ function Hero() {
           transition={{ delay: 0.65 }}
           className="mt-10 mb-4"
         >
-          
+          <p className="text-xs text-muted-foreground uppercase tracking-widest text-center mb-4">
+            
+          </p>
           
         </motion.div>
 
@@ -440,10 +442,10 @@ const plans = [
     cta: 'Start Pro Plan',
     href: '/auth/register?plan=pro',
     features: [
-      '30 papers per month',
-      '60 exports per month',
+      '20 papers/month',
+      '250 papers/year (yearly plan)',
       'PDF + DOCX export',
-      'Priority Claude AI OCR',
+      '2 templates',
       'Priority support',
     ],
   },
@@ -459,10 +461,12 @@ const plans = [
     cta: 'Get Institution Plan',
     href: '/auth/register?plan=institution',
     features: [
-      '70 papers per month',
-      '140 exports per month',
+      '50 papers/month',
+      '650 papers/year (yearly plan)',
       'PDF + DOCX export',
-      '50 team members',
+      '2 templates',
+      '5 team members',
+      'AI Assistant access',
       'Priority support',
     ],
   },
@@ -627,7 +631,7 @@ const faqs = [
   },
   {
     q: 'Is the Free plan really free?',
-    a: 'Yes, completely free — no credit card required. You get 5 papers per month, 3 templates, and PDF export forever.',
+    a: 'Yes, completely free — no credit card required. You get 3 papers per month and PDF export forever.',
   },
   {
     q: 'Can I add my school logo to the paper?',
