@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
+import { authApi } from '@/lib/api';
+
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: '🏠 Overview', section: 'Main' },
@@ -22,7 +24,16 @@ const ADMIN_EMAIL = 'admin@papercraft.ai';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const { isAuthenticated, user, logout, setUser } = useAuthStore();
+  const token = useAuthStore(s => s.token);
+
+  // Refresh user on every dashboard load so plan/subscription is always current
+  useEffect(() => {
+    if (!token) return;
+    authApi.getMe().then(res => {
+      if (res?.data?.data) setUser(res.data.data);
+    }).catch(() => {});
+  }, [token]);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isAdmin = user?.email === ADMIN_EMAIL && user?.role === 'ADMIN';
