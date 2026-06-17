@@ -482,8 +482,62 @@ export default function BillingPage() {
         </div>
       )}
 
+      {/* VIEW MORE PLANS + WHATSAPP SUPPORT */}
+      {currentPlan && currentPlan.type !== 'FREE' && (
+        <div style={{
+          background: 'hsl(222 41% 12%)',
+          border: '1px solid rgba(37,211,102,0.2)',
+          borderRadius: '16px',
+          padding: '1.2rem 1.5rem',
+          marginTop: '1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: 42, height: 42, borderRadius: '12px', flexShrink: 0,
+              background: 'rgba(37,211,102,0.12)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <svg width="22" height="22" viewBox="0 0 32 32" fill="#25d366">
+                <path d="M16 2C8.268 2 2 8.268 2 16c0 2.49.643 4.827 1.768 6.857L2 30l7.34-1.92A13.93 13.93 0 0016 30c7.732 0 14-6.268 14-14S23.732 2 16 2zm6.29 19.89c-.345-.172-2.04-1.006-2.356-1.12-.317-.115-.547-.172-.778.173-.23.345-.893 1.12-1.095 1.35-.2.23-.403.26-.748.086-.345-.172-1.457-.537-2.775-1.713-1.026-.914-1.718-2.042-1.92-2.387-.2-.345-.022-.53.15-.702.156-.155.345-.403.518-.604.172-.202.23-.345.345-.575.115-.23.058-.432-.029-.604-.086-.172-.778-1.876-1.066-2.568-.28-.674-.565-.583-.778-.594l-.662-.011c-.23 0-.604.086-.92.432-.316.345-1.208 1.18-1.208 2.877s1.237 3.337 1.41 3.567c.172.23 2.434 3.715 5.897 5.21.824.355 1.467.567 1.969.727.827.263 1.58.226 2.174.137.663-.1 2.04-.834 2.328-1.638.287-.805.287-1.495.2-1.638-.086-.144-.316-.23-.66-.403z"/>
+              </svg>
+            </div>
+            <div>
+              <div style={{ color: '#f1f5f9', fontWeight: 700, fontSize: '14px', marginBottom: '2px' }}>
+                Payment Support
+              </div>
+              <div style={{ color: '#64748b', fontSize: '12px' }}>
+                Any issue with billing or payment? Chat with us directly on WhatsApp.
+              </div>
+            </div>
+          </div>
+          <a
+            href={`https://wa.me/+916303677737?text=${encodeURIComponent(`Hi, I need help with my Paptrix ${currentPlan.name} plan payment. My email: ${user?.email || ''}`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              background: 'linear-gradient(135deg, #25d366, #128c7e)',
+              color: '#fff', fontWeight: 700, fontSize: '13px',
+              padding: '10px 20px', borderRadius: '10px',
+              textDecoration: 'none', whiteSpace: 'nowrap',
+              boxShadow: '0 4px 12px rgba(37,211,102,0.25)',
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 32 32" fill="white">
+              <path d="M16 2C8.268 2 2 8.268 2 16c0 2.49.643 4.827 1.768 6.857L2 30l7.34-1.92A13.93 13.93 0 0016 30c7.732 0 14-6.268 14-14S23.732 2 16 2zm6.29 19.89c-.345-.172-2.04-1.006-2.356-1.12-.317-.115-.547-.172-.778.173-.23.345-.893 1.12-1.095 1.35-.2.23-.403.26-.748.086-.345-.172-1.457-.537-2.775-1.713-1.026-.914-1.718-2.042-1.92-2.387-.2-.345-.022-.53.15-.702.156-.155.345-.403.518-.604.172-.202.23-.345.345-.575.115-.23.058-.432-.029-.604-.086-.172-.778-1.876-1.066-2.568-.28-.674-.565-.583-.778-.594l-.662-.011c-.23 0-.604.086-.92.432-.316.345-1.208 1.18-1.208 2.877s1.237 3.337 1.41 3.567c.172.23 2.434 3.715 5.897 5.21.824.355 1.467.567 1.969.727.827.263 1.58.226 2.174.137.663-.1 2.04-.834 2.328-1.638.287-.805.287-1.495.2-1.638-.086-.144-.316-.23-.66-.403z"/>
+            </svg>
+            Chat on WhatsApp
+          </a>
+        </div>
+      )}
       {/* WHAT'S INCLUDED COMPARISON */}
-      <div style={{ ...card(), marginBottom: '1.5rem' }}>
+
+      <div style={{ ...card(), marginBottom: '1.5rem',marginTop: '1.5rem' }}>
         <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9', marginBottom: '1rem' }}>
           📊 Plan Comparison
         </div>
@@ -503,13 +557,13 @@ export default function BillingPage() {
             </thead>
             <tbody>
               {[
-                { feature: 'Papers/month', free: '3', pro: '20', inst: '50' },
-                { feature: 'Exports/month', free: '6', pro: '40', inst: '100' },
+                { feature: 'Papers/month', free: '3', pro: '30', inst: '70' },
+                { feature: 'Exports/month', free: '6', pro: '60', inst: '140' },
                 { feature: 'PDF Export', free: '✓', pro: '✓', inst: '✓' },
                 { feature: 'DOCX Export', free: '✗', pro: '✓', inst: '✓' },
-                { feature: 'Templates', free: '2', pro: 'All 2', inst: 'All 2' },
-                { feature: 'Contact Support', free: '✗', pro: '✓', inst: '✓' },
-                { feature: 'Team Members', free: '1', pro: '1', inst: '5' },
+                { feature: 'Templates', free: '3', pro: 'All 6', inst: 'All 6' },
+                { feature: 'Custom Branding', free: '✗', pro: '✓', inst: '✓' },
+                { feature: 'Team Members', free: '1', pro: '1', inst: '50' },
                 { feature: 'Priority OCR', free: '✗', pro: '✓', inst: '✓' },
                 { feature: 'Price/month', free: '₹0', pro: '₹499', inst: '₹999' },
               ].map((row) => (
@@ -568,6 +622,9 @@ export default function BillingPage() {
           </div>
         </div>
       )}
+
+      {/* WHATSAPP SUPPORT — Pro & Institution only */}
+      
 
       {/* CANCEL CONFIRM MODAL */}
       {showCancelConfirm && (
