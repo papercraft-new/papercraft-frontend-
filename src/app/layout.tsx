@@ -8,35 +8,13 @@ const outfit = Outfit({
   variable: '--font-outfit',
   display: 'swap',
 });
+
 export const metadata: Metadata = {
-  title: 'Paptrix — AI Question Paper Generator for Indian Teachers',
-
+  title: 'Paptrix— Professional Question Paper Formatter',
   description:
-    'Paptrix converts handwritten notes and scanned PDFs into professional exam papers in 30 seconds. Free for CBSE, ICSE and State Board teachers.',
-
-  metadataBase: new URL('https://paptrix.netlify.app'),
-
-  openGraph: {
-    title: 'Paptrix — AI Question Paper Generator',
-    description:
-      'Turn handwritten notes into professional exam papers in 30 seconds.',
-
-    url: 'https://paptrix.netlify.app',
-
-    siteName: 'Paptrix',
-
-    type: 'website',
-  },
-
-  verification: {
-    google: 'vVUQJ2C_wPXDmzn5ldazibwZk0rRCQ8x7CBeLvou9nc',
-  },
-
-  robots: {
-    index: true,
-    follow: true,
-  },
+    'Turn handwritten notes and scanned PDFs into beautifully formatted exam papers. Powered by Claude AI.',
 };
+
 export default function RootLayout({
   children,
 }: {
