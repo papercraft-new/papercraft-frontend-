@@ -71,7 +71,7 @@ apiClient.interceptors.response.use(
 // ─────────────────────────────────────────
 
 export const authApi = {
-  register: (data: { email: string; password: string; name: string }) =>
+  register: (data: { email: string; password: string; name: string; ref?: string }) =>
     apiClient.post('/auth/register', data),
 
   login: (data: { email: string; password: string }) =>
@@ -192,6 +192,11 @@ export const aiApi = {
 
   bloomTag: (questions: { id: string; text: string }[]) =>
     apiClient.post('/ai/bloom-tag', { questions }),
+};
+
+export const referralsApi = {
+  getMyLink: () => apiClient.get('/referrals/my-link'),
+  getMyProgress: () => apiClient.get('/referrals/my-progress'),
 };
 
 // ─────────────────────────────────────────

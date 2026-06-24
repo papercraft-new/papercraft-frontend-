@@ -1,5 +1,6 @@
 'use client';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -37,9 +38,19 @@ const perks = [
 ];
 
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterPageInner />
+    </Suspense>
+  );
+}
+
+function RegisterPageInner() {
   const router = useRouter();
   const { login } = useAuthStore();
   const [showPass, setShowPass] = useState(false);
+  const searchParams = useSearchParams();
+  const refCode = searchParams.get('ref'); // captured once at page load, used at signup only
 
   // OTP step state
   const [step, setStep] = useState<'register' | 'otp'>('register');
@@ -88,6 +99,7 @@ export default function RegisterPage() {
         name: data.name,
         email: data.email,
         password: data.password,
+        ...(refCode ? { ref: refCode } : {}),
       });
 
       const { user, token } = res.data.data;

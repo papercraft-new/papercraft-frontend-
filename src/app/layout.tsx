@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Outfit } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
+import { GoogleAnalytics } from '@next/third-parties/google';
 
 const outfit = Outfit({
   subsets: ['latin'],
@@ -25,6 +26,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-background text-foreground antialiased">
         <Providers>{children}</Providers>
       </body>
+      <GoogleAnalytics gaId="G-W9QJVELBFJ" />
     </html>
   );
 }
