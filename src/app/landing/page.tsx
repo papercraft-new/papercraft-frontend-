@@ -878,7 +878,7 @@ export default function LandingPage() {
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <a
-              href={`https://wa.me/?text=${encodeURIComponent("🎓 Paptrix converts handwritten notes into professional question papers in 30 seconds using AI! Free to use 👇 https://paptrix.com")}`}
+              href={`https://wa.me/?text=${encodeURIComponent("🎓 Paptrix converts handwritten notes into professional question papers in 30 seconds using AI! Free to use 👇 https://paptrix.netlify.app")}`}
               target="_blank" rel="noopener noreferrer"
               style={{
                 display: 'flex', alignItems: 'center', gap: '8px',
@@ -892,7 +892,7 @@ export default function LandingPage() {
               Share on WhatsApp
             </a>
             <a
-              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent("Just discovered Paptrix — AI that converts handwritten notes into professional exam papers in 30 seconds 🎓 Free for teachers! https://paptrix.com")}`}
+              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent("Just discovered Paptrix — AI that converts handwritten notes into professional exam papers in 30 seconds 🎓 Free for teachers! https://paptrix.netlify.app")}`}
               target="_blank" rel="noopener noreferrer"
               style={{
                 display: 'flex', alignItems: 'center', gap: '8px',
@@ -905,7 +905,7 @@ export default function LandingPage() {
               Share on X
             </a>
             <button
-              onClick={() => { navigator.clipboard.writeText('https://paptrix.com'); alert('Link copied! Share it with your colleagues.'); }}
+              onClick={() => { navigator.clipboard.writeText('https://paptrix.netlify.app'); alert('Link copied! Share it with your colleagues.'); }}
               style={{
                 display: 'flex', alignItems: 'center', gap: '8px',
                 background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
