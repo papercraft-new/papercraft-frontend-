@@ -224,6 +224,7 @@ export const adminApi = {
   getUsers: (params?: { page?: number; search?: string }) =>
     apiClient.get('/admin/users', { params }),
   toggleUserActive: (id: string) => apiClient.patch(`/admin/users/${id}/toggle-active`),
+  getUserReferrals: (id: string) => apiClient.get(`/admin/users/${id}/referrals`),
   getActivity: () => apiClient.get('/admin/activity'),
   getOcrStats: () => apiClient.get('/admin/ocr-stats'),
 };

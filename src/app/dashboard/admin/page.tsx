@@ -105,6 +105,7 @@ export default function AdminPage() {
   const [userSearch, setUserSearch] = useState('');
   const [userPage, setUserPage] = useState(1);
   const [pendingUserAction, setPendingUserAction] = useState<{ userId: string; action: string } | null>(null);
+  const [referralModal, setReferralModal] = useState<{ userId: string; userName: string } | null>(null);
 
   const initialSections = [
     {
@@ -205,6 +206,14 @@ export default function AdminPage() {
     queryFn: () => adminApi.getActivity(),
     enabled: user?.role !== 'USER' && tab === 'logs',
     staleTime: 30 * 1000,
+  });
+
+  const { data: referralsData, isLoading: referralsLoading } = useQuery({
+    queryKey: ['admin-user-referrals', referralModal?.userId],
+    queryFn: () => adminApi.getUserReferrals(referralModal!.userId),
+    enabled: !!referralModal?.userId,
+    staleTime: 0,
+    refetchOnWindowFocus: false,
   });
 
   const toggleUserMutation = useMutation({
@@ -495,6 +504,26 @@ export default function AdminPage() {
                             <div style={{ display: 'flex', gap: '6px' }}>
                               <button
                                 onClick={() =>
+                                  setReferralModal({
+                                    userId: u.id as string,
+                                    userName: (u.name as string) || (u.email as string) || 'User',
+                                  })
+                                }
+                                style={{
+                                  padding: '4px 10px',
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  borderRadius: '6px',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  background: 'rgba(168,85,247,0.12)',
+                                  color: '#c084fc',
+                                }}
+                              >
+                                🔗 Referrals
+                              </button>
+                              <button
+                                onClick={() =>
                                   setPendingUserAction({
                                     userId: u.id as string,
                                     action: isActive ? 'suspend' : 'activate',
@@ -545,7 +574,7 @@ export default function AdminPage() {
                 </span>
                 <button
                   onClick={() => setUserPage(p => p + 1)}
-                  disabled={!pagination.hasNext}
+                  disabled={userPage >= pagination.totalPages}
                   style={{
                     padding: '6px 14px',
                     borderRadius: '7px',
@@ -876,6 +905,189 @@ export default function AdminPage() {
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {referralModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.75)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: '1rem',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setReferralModal(null); }}
+        >
+          <div
+            style={{
+              background: 'hsl(222 41% 10%)',
+              border: '1px solid hsl(217 33% 22%)',
+              borderRadius: '18px',
+              padding: '1.75rem',
+              width: '100%',
+              maxWidth: '640px',
+              maxHeight: '85vh',
+              overflowY: 'auto',
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: '#f1f5f9' }}>
+                  🔗 Referrals by {referralModal.userName}
+                </div>
+                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                  Users this person referred to Paptrix
+                </div>
+              </div>
+              <button
+                onClick={() => setReferralModal(null)}
+                style={{
+                  background: 'rgba(255,255,255,0.06)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#94a3b8',
+                  fontSize: '18px',
+                  width: '34px',
+                  height: '34px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {referralsLoading ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b', fontSize: '13px' }}>
+                Loading referrals...
+              </div>
+            ) : (() => {
+              const rd = referralsData?.data?.data;
+              const referrals: Array<Record<string, unknown>> = rd?.referrals || [];
+
+              // Compute counts directly from the array — single source of truth
+              const totalCount   = referrals.length;
+              const paidCount    = referrals.filter(r => r.status === 'PAID').length;
+              const pendingCount = referrals.filter(r => r.status === 'PENDING').length;
+              const expiredCount = referrals.filter(r => r.status === 'EXPIRED').length;
+
+              return (
+                <>
+                  {/* Summary pills */}
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+                    {[
+                      { label: 'Total',   value: totalCount,   color: '#60a5fa', bg: 'rgba(59,130,246,0.12)' },
+                      { label: 'Paid',    value: paidCount,    color: '#10b981', bg: 'rgba(16,185,129,0.12)' },
+                      { label: 'Pending', value: pendingCount, color: '#fbbf24', bg: 'rgba(245,158,11,0.12)' },
+                      { label: 'Expired', value: expiredCount, color: '#64748b', bg: 'rgba(100,116,139,0.12)' },
+                    ].map(s => (
+                      <div key={s.label} style={{ background: s.bg, borderRadius: '10px', padding: '8px 16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '18px', fontWeight: 800, color: s.color }}>{s.value}</span>
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: s.color, opacity: 0.8 }}>{s.label}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {referrals.length === 0 ? (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '2.5rem 1rem',
+                      background: 'hsl(222 41% 12%)',
+                      borderRadius: '12px',
+                      color: '#64748b',
+                      fontSize: '13px',
+                    }}>
+                      <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🔗</div>
+                      This user hasn't referred anyone yet.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {referrals.map((r) => {
+                        const statusColors: Record<string, { bg: string; color: string }> = {
+                          PAID:     { bg: 'rgba(16,185,129,0.12)',  color: '#10b981' },
+                          PENDING:  { bg: 'rgba(245,158,11,0.12)',  color: '#fbbf24' },
+                          EXPIRED:  { bg: 'rgba(100,116,139,0.12)', color: '#94a3b8' },
+                          REFUNDED: { bg: 'rgba(239,68,68,0.12)',   color: '#f87171' },
+                        };
+                        const sc = statusColors[r.status as string] || statusColors.PENDING;
+
+                        return (
+                          <div
+                            key={r.id as string}
+                            style={{
+                              background: 'hsl(222 41% 13%)',
+                              border: '1px solid hsl(217 33% 20%)',
+                              borderRadius: '12px',
+                              padding: '12px 16px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '12px',
+                            }}
+                          >
+                            {/* Avatar */}
+                            <div style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '50%',
+                              background: 'rgba(168,85,247,0.18)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '14px',
+                              fontWeight: 700,
+                              color: '#c084fc',
+                              flexShrink: 0,
+                            }}>
+                              {((r.referredName as string) || (r.referredEmail as string) || '?')[0].toUpperCase()}
+                            </div>
+
+                            {/* Name + email */}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {r.referredName as string}
+                              </div>
+                              <div style={{ fontSize: '11px', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {r.referredEmail as string}
+                              </div>
+                              <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px' }}>
+                                Joined {formatDate(r.joinedAt as string)}
+                                {(r.planPurchased as string | null) && (
+                                  <span style={{ marginLeft: '8px', color: '#10b981', fontWeight: 600 }}>
+                                    · Bought {r.planPurchased as string}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Status badge */}
+                            <span style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              padding: '4px 10px',
+                              borderRadius: '8px',
+                              background: sc.bg,
+                              color: sc.color,
+                              flexShrink: 0,
+                            }}>
+                              {r.status as string}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

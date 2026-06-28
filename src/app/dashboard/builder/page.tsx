@@ -367,6 +367,8 @@ const [tempPaperName, setTempPaperName] = useState('');
     const ed = examDetails;
     const totalMarksCalc = getTotalMarks();
     const isClassic = tmplId === 'tpl_classic';
+    const isWorksheetHTML = tmplId === 'tpl_worksheet';
+    const isProfessionalHTML = tmplId === 'tpl_professional';
 
     const renderOptions = (opts: Array<{ label: string; text: string }> | undefined, qt: string) => {
       const { fixedOptions } = normalizeOptions(opts, qt);
@@ -379,20 +381,20 @@ const [tempPaperName, setTempPaperName] = useState('');
               { label: 'c', text: '___' },
               { label: 'd', text: '___' },
             ];
-      if (isClassic) {
-        // Classic: all 4 options in a single flex row
+      if (isClassic || isWorksheetHTML) {
+        // Classic + Worksheet: all 4 options in a single flex row
         return `<div class="mcq-options-inline">${o
           .map(x => `<span class="mcq-opt-inline"><span class="opt-label">(${x.label})</span> ${x.text}</span>`)
           .join('')}</div>`;
       }
-      // Default: 2-column grid
+      // Default / Worksheet / Professional: 2-column grid
       return `<div class="mcq-options">${o
         .map(x => `<div class="mcq-option"><span class="opt-label">(${x.label})</span><span class="opt-text">${x.text}</span></div>`)
         .join('')}</div>`;
     };
 
     const lines = (n: number) =>
-      Array.from({ length: n })
+      Array.from({ length: isWorksheetHTML ? Math.min(n, 1) : n })
         .map(() => '<div class="answer-line"></div>')
         .join('');
 
@@ -460,6 +462,56 @@ const [tempPaperName, setTempPaperName] = useState('');
       </div>`;
     }
 
+    if (isWorksheetHTML) {
+      // ── WORKSHEET HTML: title as heading, Name only field, NO instructions, MCQ single line ──
+      return `<div class="paper-wrap">
+        <div class="ws-title">${title || ed.examType || 'Worksheet'}</div>
+        <div class="ws-name-row">
+          <span><strong>Name:</strong> _____________________________</span>
+          <span><strong>Date:</strong> ${dateStr}</span>
+        </div>
+        ${secHTML}
+        <div class="ws-footer">${ed.institutionName || ''}</div>
+      </div>`;
+    }
+
+    if (isProfessionalHTML) {
+      // ── PROFESSIONAL HTML: neat info box, NO instructions, signature block ──
+      const infoLines = [
+        ed.institutionAddress ? `<div class="pro-info-line">📍 ${ed.institutionAddress}</div>` : '',
+        ed.department ? `<div class="pro-info-line">🏫 Dept. of ${ed.department}</div>` : '',
+        ed.facultyName ? `<div class="pro-info-line">👤 Faculty: ${ed.facultyName}</div>` : '',
+      ].filter(Boolean).join('');
+
+      return `<div class="paper-wrap">
+        <div class="pro-header">
+          <div class="pro-logo"><div class="pro-logo-inner">LOGO</div></div>
+          <div class="pro-info">
+            <div class="pro-info-name">${(ed.institutionName || 'INSTITUTION NAME').toUpperCase()}</div>
+            <div class="pro-info-divider"></div>
+            ${infoLines}
+          </div>
+        </div>
+        <div class="pro-meta-row">
+          <span><strong>Subject:</strong> ${ed.subject || '—'}</span>
+          <span><strong>Class:</strong> ${ed.class || '—'}</span>
+          <span><strong>Date:</strong> ${dateStr}</span>
+          <span><strong>Duration:</strong> ${ed.duration || '3 Hrs'}</span>
+          <span><strong>Max. Marks:</strong> ${totalMarksCalc || ed.totalMarks || '—'}</span>
+        </div>
+        <div class="thin-div"></div>
+        <div class="paper-title">${ed.examType || 'Question Paper'}</div>
+        <div class="thin-div"></div>
+        ${secHTML}
+        <div class="thin-div"></div>
+        <div class="sig-block">
+          <div class="sig-line"><div>Subject Teacher</div></div>
+          <div class="sig-line"><div>HOD / Principal</div></div>
+          <div class="sig-line"><div>Exam Controller</div></div>
+        </div>
+      </div>`;
+    }
+
     // ── DEFAULT HTML: full header ──
     return `<div class="page-border"></div><div class="paper-wrap"><div class="header"><div class="inst-name">${ed.institutionName||'Institution Name'}</div>${ed.institutionAddress ? `<div class="inst-addr">${ed.institutionAddress}</div>` : ''}</div><div class="thick-div"></div><table class="meta-table"><tr><td><strong>Subject:</strong> ${ed.subject||'—'}</td><td style="text-align:right"><strong>Date:</strong> ${dateStr}</td></tr><tr><td><strong>Class:</strong> ${ed.class||'—'}</td><td style="text-align:right"><strong>Duration:</strong> ${ed.duration||'3 Hours'}</td></tr><tr><td><strong>Max. Marks:</strong> ${totalMarksCalc||ed.totalMarks||'—'}</td><td style="text-align:right"></td></tr></table><div class="thin-div"></div><div class="paper-title">${ed.examType||'Question Paper'}</div><div class="thin-div"></div>${instHTML}${secHTML}<div class="thick-div"></div></div>`;
   };
@@ -468,15 +520,23 @@ const [tempPaperName, setTempPaperName] = useState('');
   setIsExporting(true);
   try {
     const isClassic = templateId === 'tpl_classic';
+    const isWorksheet = templateId === 'tpl_worksheet';
+    const isProfessional = templateId === 'tpl_professional';
     const htmlContent = generatePaperHTML(templateId);
 
     // ── DEFAULT CSS ──
-    const defaultCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:16px;color:#111;background:#fff}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm;position:relative}.header{text-align:center;margin-bottom:8px}.inst-name{font-size:22px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#1a2e5a}.inst-addr{font-size:12px;color:#555;margin-top:2px}.thick-div{border-top:2px solid #1a2e5a;margin:7px 0}.thin-div{border-top:1px solid #1a2e5a;margin:5px 0}.meta-table{width:100%;border-collapse:collapse;font-size:14.5px;margin:4px 0}.meta-table td{padding:2px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#1a2e5a;margin:5px 0;text-decoration:underline}.instructions{font-size:14px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.7}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #1a2e5a;padding:4px 8px;font-weight:bold;font-size:15px;text-transform:uppercase;color:#1a2e5a;background:#f0f4ff;margin:10px 0 8px}.section-marks{font-size:13px;font-weight:normal}.section-desc{text-align:center;font-size:13px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:12px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0;padding-top:1px}.q-text{flex:1;line-height:1.6}.q-marks{font-weight:bold;font-size:13px;color:#1a2e5a;min-width:28px;text-align:right;flex-shrink:0;padding-top:1px}.mcq-options{display:grid;grid-template-columns:1fr 1fr;gap:5px 24px;margin-top:6px;margin-left:28px}.mcq-option{display:flex;gap:5px;font-size:15.5px}.opt-label{font-weight:bold;min-width:22px;flex-shrink:0}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}@media print{body{margin:0}.paper-wrap{padding:14mm}.question{page-break-inside:avoid}}`;
+    const defaultCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:14px;color:#111;background:#fff;line-height:1.7}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm;position:relative}.header{text-align:center;margin-bottom:8px}.inst-name{font-size:22px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#1a2e5a}.inst-addr{font-size:12px;color:#555;margin-top:2px}.thick-div{border-top:2px solid #1a2e5a;margin:7px 0}.thin-div{border-top:1px solid #1a2e5a;margin:5px 0}.meta-table{width:100%;border-collapse:collapse;font-size:14.5px;margin:4px 0}.meta-table td{padding:2px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#1a2e5a;margin:5px 0;text-decoration:underline}.instructions{font-size:14px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.7}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #1a2e5a;padding:4px 8px;font-weight:bold;font-size:15px;text-transform:uppercase;color:#1a2e5a;background:#f0f4ff;margin:10px 0 8px}.section-marks{font-size:13px;font-weight:normal}.section-desc{text-align:center;font-size:13px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:18px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0;padding-top:1px}.q-text{flex:1;line-height:1.6}.q-marks{font-weight:bold;font-size:13px;color:#1a2e5a;min-width:28px;text-align:right;flex-shrink:0;padding-top:1px}.mcq-options{display:grid;grid-template-columns:1fr 1fr;gap:5px 24px;margin-top:6px;margin-left:28px}.mcq-option{display:flex;gap:5px;font-size:15.5px}.opt-label{font-weight:bold;min-width:22px;flex-shrink:0}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}@media print{body{margin:0}.paper-wrap{padding:14mm}.question{page-break-inside:avoid}}`;
 
     // ── CLASSIC CSS ──
-    const classicCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:11px;color:#111;background:#fff}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm}.inst-name{text-align:center;font-size:14px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#111;margin-bottom:4px}.classic-meta-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:11px;padding-bottom:6px;border-bottom:1px solid #888;margin-bottom:6px}.thin-div{border-top:1px solid #555;margin:5px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#111;margin:5px 0}.instructions{font-size:14px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.7}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #333;padding:4px 8px;font-weight:bold;font-size:15px;text-transform:uppercase;color:#111;background:#f5f5f5;margin:10px 0 8px}.section-marks{font-size:13px;font-weight:normal}.section-desc{text-align:center;font-size:13px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:12px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0;padding-top:1px}.q-text{flex:1;line-height:1.6}.q-marks{font-weight:bold;font-size:13px;color:#111;min-width:28px;text-align:right;flex-shrink:0;padding-top:1px}.mcq-options-inline{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;margin-top:5px;margin-left:28px;font-size:10.5px}.mcq-opt-inline{white-space:nowrap}.opt-label{font-weight:bold}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}@media print{body{margin:0}.paper-wrap{padding:14mm}.question{page-break-inside:avoid}}`;
+    const classicCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:14px;color:#111;background:#fff;line-height:1.7}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm}.inst-name{text-align:center;font-size:16px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#111;margin-bottom:4px}.classic-meta-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:13px;padding-bottom:6px;border-bottom:1px solid #888;margin-bottom:6px}.thin-div{border-top:1px solid #555;margin:5px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#111;margin:5px 0}.instructions{font-size:14px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.7}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #333;padding:4px 8px;font-weight:bold;font-size:15px;text-transform:uppercase;color:#111;background:#f5f5f5;margin:10px 0 8px}.section-marks{font-size:13px;font-weight:normal}.section-desc{text-align:center;font-size:13px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:12px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0;padding-top:1px}.q-text{flex:1;line-height:1.6}.q-marks{font-weight:bold;font-size:13px;color:#111;min-width:28px;text-align:right;flex-shrink:0;padding-top:1px}.mcq-options-inline{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;margin-top:5px;margin-left:28px;font-size:10.5px}.mcq-opt-inline{white-space:nowrap}.opt-label{font-weight:bold}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}@media print{body{margin:0}.paper-wrap{padding:14mm}.question{page-break-inside:avoid}}`;
 
-    const css = isClassic ? classicCss : defaultCss;
+    // ── WORKSHEET CSS — compact, ~20 Q per page ──
+    const worksheetCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Calibri',sans-serif;font-size:13px;color:#111;background:#fff;line-height:1.6}.paper-wrap{padding:14mm;width:210mm;margin:0 auto;min-height:297mm;border:1px solid #1F2937}.ws-title{text-align:center;font-size:16px;font-weight:bold;text-transform:uppercase;color:#1F2937;margin-bottom:6px;letter-spacing:1px}.ws-name-row{display:flex;justify-content:space-between;font-size:10px;padding:4px 0;border-top:1px solid #1F2937;border-bottom:1px solid #1F2937;margin-bottom:8px}.section{margin-bottom:4px}.section-header{text-align:center;border:1px solid #1F2937;padding:2px 6px;font-weight:bold;font-size:10px;text-transform:uppercase;color:#1F2937;background:#F3F4F6;margin:4px 0}.section-marks{font-size:9px;font-weight:normal}.question{margin-bottom:4px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:4px}.q-num{font-weight:bold;min-width:18px;flex-shrink:0}.q-text{flex:1;line-height:1.4}.mcq-options-inline{display:flex;gap:0;margin-top:3px;margin-left:22px;font-size:11.5px}.mcq-opt-inline{flex:1;white-space:nowrap}.opt-label{font-weight:bold}.tf-options{display:flex;gap:16px;margin-top:3px;margin-left:22px}.fill-line{border-bottom:1px solid #bbb;height:14px;width:55%;margin-left:22px;margin-top:3px}.answer-line{border-bottom:1px solid #ddd;height:14px;margin:2px 0 2px 22px}.ws-footer{text-align:right;font-size:9px;color:#666;border-top:1px solid #ddd;margin-top:8px;padding-top:4px}@media print{body{margin:0}.paper-wrap{padding:10mm;border:1px solid #1F2937}.question{page-break-inside:avoid}}`;
+
+    // ── PROFESSIONAL CSS ──
+    const professionalCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Arial',sans-serif;font-size:14px;color:#111;background:#fff;line-height:1.7}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm;border:1px solid #1F2937}.pro-header{display:flex;align-items:stretch;gap:14px;margin-bottom:10px}.pro-logo{width:80px;height:80px;border-radius:50%;border:2px solid #1F2937;display:flex;align-items:center;justify-content:center;flex-shrink:0}.pro-logo-inner{font-size:10px;color:#aaa;text-align:center;line-height:1.3}.pro-info{flex:1;border:2px solid #1F2937;border-radius:4px;overflow:hidden}.pro-info-name{font-weight:bold;font-size:16px;color:#fff;text-transform:uppercase;letter-spacing:0.5px;background:#1F2937;padding:7px 12px}.pro-info-divider{height:1px;background:#e5e7eb}.pro-info-line{font-size:10.5px;color:#333;padding:3px 12px;line-height:1.6}.pro-meta-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;font-size:11px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:6px 10px;margin-bottom:8px}.thin-div{border-top:1px solid #1F2937;margin:6px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;color:#1F2937;margin:8px 0 6px;text-decoration:underline;letter-spacing:2px}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #1F2937;padding:4px 8px;font-weight:bold;font-size:12px;text-transform:uppercase;color:#1F2937;background:#f0f4ff;margin:10px 0 8px}.section-marks{font-size:10px;font-weight:normal}.question{margin-bottom:12px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0}.q-text{flex:1;line-height:1.6}.mcq-options{display:grid;grid-template-columns:1fr 1fr;gap:5px 24px;margin-top:6px;margin-left:28px}.mcq-option{display:flex;gap:5px}.opt-label{font-weight:bold;min-width:22px;flex-shrink:0}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}.sig-block{margin-top:30px;display:flex;justify-content:space-between}.sig-line{text-align:center;width:30%}.sig-line div{border-top:1px solid #999;padding-top:5px;font-size:10px;color:#555}@media print{body{margin:0}.paper-wrap{padding:14mm;border:1px solid #1F2937}.question{page-break-inside:avoid}}`;
+
+    const css = isClassic ? classicCss : isWorksheet ? worksheetCss : isProfessional ? professionalCss : defaultCss;
 
     const fullHtml = `<!DOCTYPE html>
 <html>
@@ -739,13 +799,7 @@ const [tempPaperName, setTempPaperName] = useState('');
                   badgeColor: '#6366f1',
                   desc: 'Clean layout with minimal top header — name, class, date, marks. MCQ options in a single row.',
                   mcq: 'All 4 options in one line',
-                  preview: [
-                    { w: '60%', h: 4, mb: 8, color: '#374151' },
-                    { w: '100%', h: 2, mb: 6, color: '#d1d5db' },
-                    { w: '40%', h: 3, mb: 8, color: '#6b7280' },
-                    { w: '90%', h: 3, mb: 4, color: '#9ca3af' },
-                    { w: '100%', h: 2, mb: 4, color: '#e5e7eb', opts: true },
-                  ],
+                  planRequired: null,
                 },
                 {
                   id: 'tpl_school',
@@ -754,21 +808,40 @@ const [tempPaperName, setTempPaperName] = useState('');
                   badgeColor: '#10b981',
                   desc: 'Traditional double-border layout with full institution header, subject, class, and signature block.',
                   mcq: '2×2 grid options',
-                  preview: [
-                    { w: '70%', h: 5, mb: 4, color: '#1a2e5a', bold: true },
-                    { w: '100%', h: 2, mb: 4, color: '#1a2e5a', double: true },
-                    { w: '100%', h: 3, mb: 4, color: '#6b7280', twoCol: true },
-                    { w: '50%', h: 4, mb: 8, color: '#1a2e5a', center: true },
-                    { w: '90%', h: 3, mb: 4, color: '#9ca3af' },
-                    { w: '100%', h: 2, mb: 0, color: '#e5e7eb', opts2x2: true },
-                  ],
+                  planRequired: null,
+                },
+                {
+                  id: 'tpl_worksheet',
+                  name: 'Worksheet',
+                  badge: 'PRO',
+                  badgeColor: '#f59e0b',
+                  desc: 'Student worksheet — title above, Name field, single border, ~20 questions per page.',
+                  mcq: '2×2 grid options',
+                  planRequired: 'PRO',
+                },
+                {
+                  id: 'tpl_professional',
+                  name: 'Professional',
+                  badge: 'INSTITUTION',
+                  badgeColor: '#8b5cf6',
+                  desc: 'Formal layout with logo circle, institution info box, centred title, single page border.',
+                  mcq: '2×2 grid options',
+                  planRequired: 'INSTITUTION',
                 },
               ].map(tmpl => {
                 const isSelected = templateId === tmpl.id;
+                const isLockedTmpl = tmpl.planRequired && !['PRO','INSTITUTION'].includes(
+                  ((usePaperStore as unknown as { getState: () => { templateId: string } }).getState?.()?.templateId || '')
+                ) && tmpl.planRequired !== null;
                 return (
                   <div
                     key={tmpl.id}
-                    onClick={() => setTemplateId(tmpl.id)}
+                    onClick={() => {
+                      if (tmpl.planRequired) {
+                        toast(`🔒 Upgrade to ${tmpl.planRequired} for the ${tmpl.name} template`, { icon: '⚠️' });
+                      }
+                      setTemplateId(tmpl.id);
+                    }}
                     style={{
                       background: isSelected ? 'rgba(59,130,246,0.08)' : 'hsl(222 41% 12%)',
                       border: `2px solid ${isSelected ? '#3b82f6' : 'hsl(217 33% 22%)'}`,
@@ -776,8 +849,20 @@ const [tempPaperName, setTempPaperName] = useState('');
                       overflow: 'hidden',
                       cursor: 'pointer',
                       transition: 'all 0.2s',
+                      position: 'relative',
                     }}
                   >
+                    {/* PRO/INSTITUTION badge top-right */}
+                    {tmpl.planRequired && (
+                      <div style={{
+                        position: 'absolute', top: '8px', right: '8px', zIndex: 2,
+                        background: 'rgba(0,0,0,0.7)', color: '#fbbf24',
+                        fontSize: '10px', fontWeight: 700,
+                        padding: '2px 7px', borderRadius: '10px',
+                      }}>
+                        🔒 {tmpl.planRequired}
+                      </div>
+                    )}
                     {/* Mini paper preview */}
                     <div style={{
                       background: '#fff',
@@ -787,7 +872,9 @@ const [tempPaperName, setTempPaperName] = useState('');
                       height: '90px',
                       overflow: 'hidden',
                       position: 'relative',
-                      border: tmpl.id === 'tpl_school' ? '2px double #1a2e5a' : '1px solid #e5e7eb',
+                      border: tmpl.id === 'tpl_school' ? '2px double #1a2e5a'
+                        : (tmpl.id === 'tpl_worksheet' || tmpl.id === 'tpl_professional') ? '1.5px solid #1F2937'
+                        : '1px solid #e5e7eb',
                     }}>
                       {/* Classic preview */}
                       {tmpl.id === 'tpl_classic' && (
@@ -818,6 +905,35 @@ const [tempPaperName, setTempPaperName] = useState('');
                             <span><b>(a)</b> Option A</span><span><b>(b)</b> Option B</span>
                             <span><b>(c)</b> Option C</span><span><b>(d)</b> Option D</span>
                           </div>
+                        </>
+                      )}
+                      {/* Worksheet preview */}
+                      {tmpl.id === 'tpl_worksheet' && (
+                        <>
+                          <div style={{ textAlign: 'center', fontSize: '7px', fontWeight: 800, color: '#1F2937', textTransform: 'uppercase', marginBottom: '3px' }}>WORKSHEET NAME</div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '5px', color: '#333', borderBottom: '1px solid #1F2937', paddingBottom: '3px', marginBottom: '3px' }}>
+                            <span><b>Name:</b> ______________</span><span><b>Class:</b> X</span>
+                          </div>
+                          {[1,2,3,4].map(n => (
+                            <div key={n} style={{ fontSize: '4.5px', color: '#222', borderBottom: '0.5px solid #ddd', paddingBottom: '1px', marginBottom: '1px' }}>
+                              <b>{n}.</b> Question text here ___
+                            </div>
+                          ))}
+                        </>
+                      )}
+                      {/* Professional preview */}
+                      {tmpl.id === 'tpl_professional' && (
+                        <>
+                          <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
+                            <div style={{ width: '22px', height: '22px', borderRadius: '50%', border: '1px solid #bbb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3.5px', color: '#aaa', flexShrink: 0 }}>LOGO</div>
+                            <div style={{ flex: 1, border: '1px solid #1F2937', padding: '2px', fontSize: '4.5px', color: '#333' }}>
+                              <div style={{ fontWeight: 800, fontSize: '5px', color: '#1F2937' }}>SSS COLLEGE</div>
+                              <div style={{ fontSize: '4px' }}>Gajapthimagaram</div>
+                              <div style={{ fontSize: '4px' }}>Ph: 1234567890</div>
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'center', fontSize: '6px', fontWeight: 700, color: '#1F2937', textDecoration: 'underline', marginBottom: '3px' }}>QUESTION PAPER</div>
+                          <div style={{ fontSize: '4.5px', color: '#555' }}>1. Sample question text here</div>
                         </>
                       )}
                     </div>
@@ -851,7 +967,7 @@ const [tempPaperName, setTempPaperName] = useState('');
                 style={btn('primary')}
                 onClick={() => advanceTo('edit', 2)}
               >
-                Continue with {templateId === 'tpl_classic' ? 'Classic' : 'Basic'} →
+                Continue with {templateId === 'tpl_classic' ? 'Classic' : templateId === 'tpl_worksheet' ? 'Worksheet' : templateId === 'tpl_professional' ? 'Professional' : 'Basic'} →
               </button>
             </div>
           </div>
@@ -1000,9 +1116,13 @@ const [tempPaperName, setTempPaperName] = useState('');
                 <iframe
                   srcDoc={(() => {
                     const isClassic = templateId === 'tpl_classic';
-                    const defaultCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:16px;color:#111;background:#fff}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm;position:relative}.header{text-align:center;margin-bottom:8px}.inst-name{font-size:22px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#1a2e5a}.inst-addr{font-size:12px;color:#555;margin-top:2px}.thick-div{border-top:2px solid #1a2e5a;margin:7px 0}.thin-div{border-top:1px solid #1a2e5a;margin:5px 0}.meta-table{width:100%;border-collapse:collapse;font-size:14.5px;margin:4px 0}.meta-table td{padding:2px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#1a2e5a;margin:5px 0;text-decoration:underline}.instructions{font-size:14px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.7}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #1a2e5a;padding:4px 8px;font-weight:bold;font-size:15px;text-transform:uppercase;color:#1a2e5a;background:#f0f4ff;margin:10px 0 8px}.section-marks{font-size:13px;font-weight:normal}.section-desc{text-align:center;font-size:13px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:12px}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0;padding-top:1px}.q-text{flex:1;line-height:1.6}.mcq-options{display:grid;grid-template-columns:1fr 1fr;gap:5px 24px;margin-top:6px;margin-left:28px}.mcq-option{display:flex;gap:5px;font-size:15.5px}.opt-label{font-weight:bold;min-width:22px;flex-shrink:0}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}`;
-                    const classicCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:11px;color:#111;background:#fff}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm}.inst-name{text-align:center;font-size:14px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#111;margin-bottom:4px}.classic-meta-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:11px;padding-bottom:6px;border-bottom:1px solid #888;margin-bottom:6px}.thin-div{border-top:1px solid #555;margin:5px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#111;margin:5px 0}.instructions{font-size:14px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.7}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #333;padding:4px 8px;font-weight:bold;font-size:15px;text-transform:uppercase;color:#111;background:#f5f5f5;margin:10px 0 8px}.section-marks{font-size:13px;font-weight:normal}.section-desc{text-align:center;font-size:13px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:12px}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0;padding-top:1px}.q-text{flex:1;line-height:1.6}.mcq-options-inline{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;margin-top:5px;margin-left:28px;font-size:10.5px}.mcq-opt-inline{white-space:nowrap}.opt-label{font-weight:bold}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}`;
-                    const css = isClassic ? classicCss : defaultCss;
+                    const isWorksheetPrev = templateId === 'tpl_worksheet';
+                    const isProfessionalPrev = templateId === 'tpl_professional';
+                    const defaultCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:18px;color:#111;background:#fff}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm;position:relative}.header{text-align:center;margin-bottom:8px}.inst-name{font-size:22px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#1a2e5a}.inst-addr{font-size:12px;color:#555;margin-top:2px}.thick-div{border-top:2px solid #1a2e5a;margin:7px 0}.thin-div{border-top:1px solid #1a2e5a;margin:5px 0}.meta-table{width:100%;border-collapse:collapse;font-size:14.5px;margin:4px 0}.meta-table td{padding:2px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#1a2e5a;margin:5px 0;text-decoration:underline}.instructions{font-size:14px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.7}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #1a2e5a;padding:4px 8px;font-weight:bold;font-size:15px;text-transform:uppercase;color:#1a2e5a;background:#f0f4ff;margin:10px 0 8px}.section-marks{font-size:13px;font-weight:normal}.section-desc{text-align:center;font-size:13px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:12px}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0;padding-top:1px}.q-text{flex:1;line-height:1.6}.mcq-options{display:grid;grid-template-columns:1fr 1fr;gap:5px 24px;margin-top:6px;margin-left:28px}.mcq-option{display:flex;gap:5px;font-size:15.5px}.opt-label{font-weight:bold;min-width:22px;flex-shrink:0}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}`;
+                    const classicCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:13px;color:#111;background:#fff}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm}.inst-name{text-align:center;font-size:16px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#111;margin-bottom:4px}.classic-meta-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:13px;padding-bottom:6px;border-bottom:1px solid #888;margin-bottom:6px}.thin-div{border-top:1px solid #555;margin:5px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#111;margin:5px 0}.instructions{font-size:14px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.7}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #333;padding:4px 8px;font-weight:bold;font-size:15px;text-transform:uppercase;color:#111;background:#f5f5f5;margin:10px 0 8px}.section-marks{font-size:13px;font-weight:normal}.section-desc{text-align:center;font-size:13px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:12px}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0;padding-top:1px}.q-text{flex:1;line-height:1.6}.mcq-options-inline{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;margin-top:5px;margin-left:28px;font-size:10.5px}.mcq-opt-inline{white-space:nowrap}.opt-label{font-weight:bold}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}`;
+                    const worksheetCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Calibri',sans-serif;font-size:12px;color:#111;background:#fff}.paper-wrap{padding:14mm;width:210mm;margin:0 auto;min-height:297mm;border:1px solid #1F2937}.ws-title{text-align:center;font-size:16px;font-weight:bold;text-transform:uppercase;color:#1F2937;margin-bottom:6px;letter-spacing:1px}.ws-name-row{display:flex;justify-content:space-between;font-size:10px;padding:4px 0;border-top:1px solid #1F2937;border-bottom:1px solid #1F2937;margin-bottom:8px}.section{margin-bottom:4px}.section-header{text-align:center;border:1px solid #1F2937;padding:2px 6px;font-weight:bold;font-size:10px;text-transform:uppercase;color:#1F2937;background:#F3F4F6;margin:4px 0}.section-marks{font-size:9px;font-weight:normal}.question{margin-bottom:4px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:4px}.q-num{font-weight:bold;min-width:18px;flex-shrink:0}.q-text{flex:1;line-height:1.4}.mcq-options-inline{display:flex;gap:0;margin-top:3px;margin-left:22px;font-size:11.5px}.mcq-opt-inline{flex:1;white-space:nowrap}.opt-label{font-weight:bold}.tf-options{display:flex;gap:16px;margin-top:3px;margin-left:22px}.fill-line{border-bottom:1px solid #bbb;height:14px;width:55%;margin-left:22px;margin-top:3px}.answer-line{border-bottom:1px solid #ddd;height:14px;margin:2px 0 2px 22px}.ws-footer{text-align:right;font-size:9px;color:#666;border-top:1px solid #ddd;margin-top:8px;padding-top:4px}@media print{body{margin:0}.paper-wrap{padding:10mm;border:1px solid #1F2937}.question{page-break-inside:avoid}}`;
+                    const professionalCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Arial',sans-serif;font-size:13px;color:#111;background:#fff}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm;border:1px solid #1F2937}.pro-header{display:flex;align-items:stretch;gap:14px;margin-bottom:10px}.pro-logo{width:80px;height:80px;border-radius:50%;border:2px solid #1F2937;display:flex;align-items:center;justify-content:center;flex-shrink:0}.pro-logo-inner{font-size:10px;color:#aaa;text-align:center;line-height:1.3}.pro-info{flex:1;border:2px solid #1F2937;border-radius:4px;overflow:hidden}.pro-info-name{font-weight:bold;font-size:16px;color:#fff;text-transform:uppercase;letter-spacing:0.5px;background:#1F2937;padding:7px 12px}.pro-info-divider{height:1px;background:#e5e7eb}.pro-info-line{font-size:10.5px;color:#333;padding:3px 12px;line-height:1.6}.pro-meta-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;font-size:11px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:6px 10px;margin-bottom:8px}.thin-div{border-top:1px solid #1F2937;margin:6px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;color:#1F2937;margin:8px 0 6px;text-decoration:underline;letter-spacing:2px}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #1F2937;padding:4px 8px;font-weight:bold;font-size:12px;text-transform:uppercase;color:#1F2937;background:#f0f4ff;margin:10px 0 8px}.section-marks{font-size:10px;font-weight:normal}.question{margin-bottom:12px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0}.q-text{flex:1;line-height:1.6}.mcq-options{display:grid;grid-template-columns:1fr 1fr;gap:5px 24px;margin-top:6px;margin-left:28px}.mcq-option{display:flex;gap:5px}.opt-label{font-weight:bold;min-width:22px;flex-shrink:0}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}.sig-block{margin-top:30px;display:flex;justify-content:space-between}.sig-line{text-align:center;width:30%}.sig-line div{border-top:1px solid #999;padding-top:5px;font-size:10px;color:#555}@media print{body{margin:0}.paper-wrap{padding:14mm;border:1px solid #1F2937}.question{page-break-inside:avoid}}`;
+                    const css = isClassic ? classicCss : isWorksheetPrev ? worksheetCss : isProfessionalPrev ? professionalCss : defaultCss;
                     const body = generatePaperHTML(templateId);
                     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${css}</style></head><body>${body}</body></html>`;
                   })()}
