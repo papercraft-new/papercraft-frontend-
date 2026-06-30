@@ -156,161 +156,89 @@ const handleExportPdf = async (paper: Record<string, unknown>) => {
   setPdfExportingId(paper.id as string);
   try {
     toast.loading('Preparing PDF...', { id: 'pdf-' + paper.id });
-
     const res = await papersApi.getById(paper.id as string);
     const fullPaper = res.data.data;
-
     const ed = (fullPaper.examDetails || {}) as Record<string, unknown>;
     const sections = (fullPaper.sections || []) as Section[];
     const totalMarks = fullPaper.totalMarks as number;
     const paperTitle = fullPaper.title as string || 'Question Paper';
     const tmplId: string = (fullPaper.templateId as string) || 'tpl_classic';
-    const isClassic = tmplId === 'tpl_classic';
-
-    const dateStr = ed.date
-      ? new Date(ed.date as string).toLocaleDateString('en-IN', {
-          day: '2-digit', month: 'long', year: 'numeric',
-        })
-      : '—';
+    const isClassic      = tmplId === 'tpl_classic';
+    const isWorksheet    = tmplId === 'tpl_worksheet';
+    const isProfessional = tmplId === 'tpl_professional';
+    const dateStr = ed.date ? new Date(ed.date as string).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : '—';
 
     const renderOptions = (options: Array<{ label: string; text: string }> | undefined) => {
       if (!options || options.length === 0) return '';
-      const opts = options.length >= 4 ? options : [
-        ...options,
-        ...Array(4 - options.length).fill({ label: '?', text: '___' }),
-      ];
-      if (isClassic) {
-        return `<div class="mcq-options-inline">${opts.slice(0, 4).map(opt =>
-          `<span class="mcq-opt-inline"><span class="opt-label">(${opt.label})</span> ${opt.text || '___'}</span>`
-        ).join('')}</div>`;
+      const opts = options.length >= 4 ? options : [...options, ...Array(4 - options.length).fill({ label: '?', text: '___' })];
+      if (isClassic || isWorksheet) {
+        return `<div class="mcq-options-inline">${opts.slice(0,4).map(opt => `<span class="mcq-opt-inline"><span class="opt-label">(${opt.label})</span> ${opt.text||'___'}</span>`).join('')}</div>`;
       }
-      return `<div class="mcq-options">${opts.map(opt =>
-        `<div class="mcq-option"><span class="opt-label">(${opt.label})</span><span>${opt.text || '___'}</span></div>`
-      ).join('')}</div>`;
+      return `<div class="mcq-options">${opts.map(opt => `<div class="mcq-option"><span class="opt-label">(${opt.label})</span><span>${opt.text||'___'}</span></div>`).join('')}</div>`;
     };
 
     const sectionsHTML = sections.map(section => {
-      const marksInfo = section.marksPerQuestion
-        ? `(${section.marksPerQuestion} Mark${section.marksPerQuestion > 1 ? 's' : ''} Each)`
-        : section.totalMarks ? `[Total: ${section.totalMarks} Marks]` : '';
-
+      const marksInfo = section.marksPerQuestion ? `(${section.marksPerQuestion} Mark${section.marksPerQuestion>1?'s':''} Each)` : section.totalMarks ? `[Total: ${section.totalMarks} Marks]` : '';
       const questionsHTML = section.questions.map(q => {
-        let answerArea = '';
-        if (q.type === 'MCQ') answerArea = renderOptions(q.options);
-        else if (q.type === 'TRUE_FALSE') answerArea = `<div class="tf-options"><span><strong>(a)</strong> True</span><span><strong>(b)</strong> False</span></div>`;
-        else if (q.type === 'FILL_IN_BLANK') answerArea = '<div class="fill-line"></div>';
-        else if (q.type === 'LONG_ANSWER') answerArea = Array(6).fill('<div class="answer-line"></div>').join('');
-        else if (q.type === 'DIAGRAM') answerArea = Array(8).fill('<div class="answer-line"></div>').join('');
-        else answerArea = Array(2).fill('<div class="answer-line"></div>').join('');
-
-        return `<div class="question">
-          <div class="q-row">
-            <span class="q-num">${q.number}.</span>
-            <span class="q-text">${q.text}</span>
-            
-          </div>${answerArea}
-        </div>`;
+        let a = '';
+        if (q.type === 'MCQ') a = renderOptions(q.options);
+        else if (q.type === 'TRUE_FALSE') a = '<div class="tf-options"><span><strong>(a)</strong> True</span><span><strong>(b)</strong> False</span></div>';
+        else if (q.type === 'FILL_IN_BLANK') a = '<div class="fill-line"></div>';
+        else if (q.type === 'LONG_ANSWER') a = isWorksheet ? '<div class="answer-line"></div>'.repeat(2) : '<div class="answer-line"></div>'.repeat(6);
+        else if (q.type === 'DIAGRAM') a = '<div class="answer-line"></div>'.repeat(8);
+        else a = '<div class="answer-line"></div>'.repeat(2);
+        return `<div class="question"><div class="q-row"><span class="q-num">${q.number}.</span><span class="q-text">${q.text}</span></div>${a}</div>`;
       }).join('');
-
-      return `<div class="section">
-        <div class="section-header">${section.title}${marksInfo ? ` ${marksInfo}` : ''}</div>
-        ${section.description ? `<div class="section-desc">${section.description}</div>` : ''}
-        ${questionsHTML}
-      </div>`;
+      return `<div class="section"><div class="section-header">${section.title}${marksInfo?` <span class="section-marks">${marksInfo}</span>`:''}</div>${section.description?`<div class="section-desc">${section.description}</div>`:''}${questionsHTML}</div>`;
     }).join('');
 
-    const instructionsHTML = (ed.instructions as string[] | undefined)?.length
-      ? `<div class="instructions"><div class="inst-title">General Instructions:</div><ol>${
-          (ed.instructions as string[]).map(i => `<li>${i}</li>`).join('')
-        }</ol></div><div class="thin-div"></div>`
-      : '';
+    const instructionsHTML = (!isWorksheet && !isProfessional) && (ed.instructions as string[]|undefined)?.length
+      ? `<div class="instructions"><div class="inst-title">General Instructions:</div><ol>${(ed.instructions as string[]).map(i=>`<li>${i}</li>`).join('')}</ol></div><div class="thin-div"></div>` : '';
 
-    const defaultCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:11px;color:#111;background:#fff}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm}.header{text-align:center;margin-bottom:8px}.inst-name{font-size:16px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#1a2e5a}.inst-addr{font-size:10px;color:#555;margin-top:2px}.thick-div{border-top:2px solid #1a2e5a;margin:7px 0}.thin-div{border-top:1px solid #1a2e5a;margin:5px 0}.meta-table{width:100%;border-collapse:collapse;font-size:10.5px;margin:4px 0}.meta-table td{padding:2px 0}.paper-title{text-align:center;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#1a2e5a;margin:5px 0;text-decoration:underline}.instructions{font-size:10px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.7}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #1a2e5a;padding:4px 8px;font-weight:bold;font-size:11px;text-transform:uppercase;color:#1a2e5a;background:#f0f4ff;margin:10px 0 8px}.section-desc{text-align:center;font-size:10px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:12px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0;padding-top:1px}.q-text{flex:1;line-height:1.6}.q-marks{font-weight:bold;font-size:10px;color:#1a2e5a;min-width:28px;text-align:right;flex-shrink:0;padding-top:1px}.mcq-options{display:grid;grid-template-columns:1fr 1fr;gap:5px 24px;margin-top:6px;margin-left:28px}.mcq-option{display:flex;gap:5px;font-size:10.5px}.opt-label{font-weight:bold;min-width:22px;flex-shrink:0}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px;font-size:10.5px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}.sign-table{width:100%;border-collapse:collapse;margin-top:6px}.sign-cell{width:33%;text-align:center;padding:0 12px}.sign-line{border-bottom:1px solid #333;height:22px;margin-bottom:4px}.sign-label{font-size:9px;color:#555}@media print{body{margin:0}.paper-wrap{padding:14mm}.question{page-break-inside:avoid}}`;
+    const defaultCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:13px;color:#111;background:#fff;line-height:1.55}.paper-wrap{padding:15mm;width:210mm;margin:0 auto;min-height:297mm}.header{text-align:center;margin-bottom:5px}.inst-name{font-size:16px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;color:#1a2e5a}.inst-addr{font-size:11px;color:#555;margin-top:1px}.thick-div{border-top:2px solid #1a2e5a;margin:4px 0}.thin-div{border-top:1px solid #1a2e5a;margin:3px 0}.meta-table{width:100%;border-collapse:collapse;font-size:12px;margin:3px 0}.meta-table td{padding:2px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#1a2e5a;margin:4px 0;text-decoration:underline}.instructions{font-size:11px;margin-bottom:5px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:2px}.instructions ol{padding-left:16px;line-height:1.5}.section{margin-bottom:8px}.section-header{text-align:center;border:1px solid #1a2e5a;padding:3px 8px;font-weight:bold;font-size:12px;text-transform:uppercase;color:#1a2e5a;background:#f0f4ff;margin:8px 0 6px}.section-marks{font-size:11px;font-weight:normal}.question{margin-bottom:9px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:4px}.q-num{font-weight:bold;min-width:20px;flex-shrink:0}.q-text{flex:1;line-height:1.55;font-size:13px}.mcq-options{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px 8px;margin-top:4px;margin-left:24px}.mcq-option{display:flex;gap:4px;font-size:12px}.opt-label{font-weight:bold;min-width:18px;flex-shrink:0}.tf-options{display:flex;gap:20px;margin-top:4px;margin-left:24px;font-size:12px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:24px;margin-top:4px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 24px}@media print{body{margin:0}.paper-wrap{padding:12mm}.question{page-break-inside:avoid}}`;
+    const classicCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:13px;color:#111;background:#fff;line-height:1.55}.paper-wrap{padding:15mm;width:210mm;margin:0 auto;min-height:297mm}.inst-name{text-align:center;font-size:16px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;color:#111;margin-bottom:4px}.classic-meta-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;font-size:12px;padding-bottom:4px;border-bottom:1px solid #888;margin-bottom:4px}.thin-div{border-top:1px solid #555;margin:3px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#111;margin:4px 0}.section{margin-bottom:8px}.section-header{text-align:center;border:1px solid #333;padding:3px 8px;font-weight:bold;font-size:12px;text-transform:uppercase;color:#111;background:#f5f5f5;margin:8px 0 6px}.section-marks{font-size:11px;font-weight:normal}.question{margin-bottom:10px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:4px}.q-num{font-weight:bold;min-width:20px;flex-shrink:0}.q-text{flex:1;line-height:1.55;font-size:13px}.mcq-options-inline{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;margin-top:4px;margin-left:24px;font-size:12px}.mcq-opt-inline{white-space:nowrap}.opt-label{font-weight:bold}.tf-options{display:flex;gap:20px;margin-top:4px;margin-left:24px;font-size:12px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:24px;margin-top:4px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 24px}@media print{body{margin:0}.paper-wrap{padding:12mm}.question{page-break-inside:avoid}}`;
+    const worksheetCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Calibri',sans-serif;font-size:12px;color:#111;background:#fff;line-height:1.5}.paper-wrap{padding:12mm;width:210mm;margin:0 auto;min-height:297mm;border:1px solid #1F2937}.ws-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;color:#1F2937;margin-bottom:6px;letter-spacing:1px}.ws-name-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-top:1px solid #1F2937;border-bottom:1px solid #1F2937;margin-bottom:8px}.section{margin-bottom:6px}.section-header{text-align:center;border:1px solid #1F2937;padding:2px 6px;font-weight:bold;font-size:11px;text-transform:uppercase;color:#1F2937;background:#F3F4F6;margin:6px 0}.section-marks{font-size:11px;font-weight:normal}.question{margin-bottom:6px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:4px}.q-num{font-weight:bold;min-width:20px;flex-shrink:0}.q-text{flex:1;line-height:1.5;font-size:12px}.mcq-options-inline{display:flex;margin-top:3px;margin-left:20px;font-size:11px}.mcq-opt-inline{flex:1;white-space:nowrap}.opt-label{font-weight:bold}.tf-options{display:flex;gap:16px;margin-top:4px;margin-left:24px;font-size:12px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:55%;margin-left:24px;margin-top:4px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:3px 0 3px 24px}.ws-footer{text-align:right;font-size:11px;color:#666;border-top:1px solid #ddd;margin-top:10px;padding-top:4px}@media print{body{margin:0}.paper-wrap{padding:10mm;border:1px solid #1F2937}.question{page-break-inside:avoid}}`;
+    const professionalCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Arial',sans-serif;font-size:13px;color:#111;background:#fff;line-height:1.55}.paper-wrap{padding:15mm;width:210mm;margin:0 auto;min-height:297mm;border:1px solid #1F2937}.pro-header{display:flex;align-items:stretch;gap:12px;margin-bottom:8px}.pro-logo{width:64px;height:64px;border-radius:50%;border:2px solid #1F2937;display:flex;align-items:center;justify-content:center;font-size:10px;color:#aaa;flex-shrink:0;text-align:center}.pro-info{flex:1;border:2px solid #1F2937;border-radius:4px;overflow:hidden}.pro-info-name{font-weight:bold;font-size:14px;color:#fff;text-transform:uppercase;letter-spacing:0.5px;background:#1F2937;padding:5px 10px}.pro-info-line{font-size:11px;color:#333;padding:2px 10px;line-height:1.5}.pro-meta-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;font-size:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:4px 10px;margin-bottom:6px}.thin-div{border-top:1px solid #1F2937;margin:4px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;color:#1F2937;margin:5px 0 4px;text-decoration:underline;letter-spacing:1px}.section{margin-bottom:8px}.section-header{text-align:center;border:1px solid #1F2937;padding:3px 8px;font-weight:bold;font-size:12px;text-transform:uppercase;color:#1F2937;background:#f0f4ff;margin:8px 0 6px}.section-marks{font-size:11px;font-weight:normal}.question{margin-bottom:9px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:4px}.q-num{font-weight:bold;min-width:20px;flex-shrink:0}.q-text{flex:1;line-height:1.55;font-size:13px}.mcq-options{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px 8px;margin-top:4px;margin-left:24px}.mcq-option{display:flex;gap:4px;font-size:12px}.opt-label{font-weight:bold;min-width:18px;flex-shrink:0}.tf-options{display:flex;gap:20px;margin-top:4px;margin-left:24px;font-size:12px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:24px;margin-top:4px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 24px}.sig-block{margin-top:20px;display:flex;justify-content:space-between}.sig-line{text-align:center;width:30%}.sig-line div{border-top:1px solid #999;padding-top:4px;font-size:10px;color:#555}@media print{body{margin:0}.paper-wrap{padding:12mm;border:1px solid #1F2937}.question{page-break-inside:avoid}}`;
 
-    const classicCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:11px;color:#111;background:#fff}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm}.inst-name{text-align:center;font-size:14px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#111;margin-bottom:4px}.classic-meta-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:11px;padding-bottom:6px;border-bottom:1px solid #888;margin-bottom:6px}.thin-div{border-top:1px solid #555;margin:5px 0}.paper-title{text-align:center;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#111;margin:5px 0}.instructions{font-size:10px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.7}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #333;padding:4px 8px;font-weight:bold;font-size:11px;text-transform:uppercase;color:#111;background:#f5f5f5;margin:10px 0 8px}.section-desc{text-align:center;font-size:10px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:12px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:22px;flex-shrink:0;padding-top:1px}.q-text{flex:1;line-height:1.6}.q-marks{font-weight:bold;font-size:10px;color:#111;min-width:28px;text-align:right;flex-shrink:0;padding-top:1px}.mcq-options-inline{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;margin-top:5px;margin-left:28px;font-size:10.5px}.mcq-opt-inline{white-space:nowrap}.opt-label{font-weight:bold}.tf-options{display:flex;gap:24px;margin-top:5px;margin-left:28px;font-size:10.5px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:28px;margin-top:5px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 28px}@media print{body{margin:0}.paper-wrap{padding:14mm}.question{page-break-inside:avoid}}`;
+    const css = isClassic ? classicCss : isWorksheet ? worksheetCss : isProfessional ? professionalCss : defaultCss;
 
-    const css = isClassic ? classicCss : defaultCss;
+    let bodyHTML = '';
+    if (isClassic) {
+      bodyHTML = `<div class="paper-wrap"><div class="inst-name">${ed.institutionName||'Institution Name'}</div><div class="thin-div"></div><div class="classic-meta-row"><span><strong>Name:</strong> ___________________</span><span><strong>Class:</strong> ${ed.class||'—'}</span><span><strong>Date:</strong> ${dateStr}</span><span><strong>Max. Marks:</strong> ${totalMarks||ed.totalMarks||'—'}</span></div><div class="thin-div"></div><div class="paper-title">${ed.examType||'Question Paper'}</div><div class="thin-div"></div>${sectionsHTML}</div>`;
+    } else if (isWorksheet) {
+      bodyHTML = `<div class="paper-wrap"><div class="ws-title">${paperTitle||ed.examType||'Worksheet'}</div><div class="ws-name-row"><span><strong>Name:</strong> _____________________________</span><span><strong>Date:</strong> ${dateStr}</span></div>${sectionsHTML}<div class="ws-footer">${ed.institutionName||''}</div></div>`;
+    } else if (isProfessional) {
+      const infoLines = [ed.institutionAddress?`<div class="pro-info-line">📍 ${ed.institutionAddress}</div>`:'', ed.department?`<div class="pro-info-line">🏫 Dept. of ${ed.department}</div>`:'', ed.facultyName?`<div class="pro-info-line">👤 Faculty: ${ed.facultyName}</div>`:''].filter(Boolean).join('');
+      bodyHTML = `<div class="paper-wrap"><div class="pro-header"><div class="pro-logo">LOGO</div><div class="pro-info"><div class="pro-info-name">${(ed.institutionName as string||'INSTITUTION NAME').toUpperCase()}</div>${infoLines}</div></div><div class="pro-meta-row"><span><strong>Subject:</strong> ${ed.subject||'—'}</span><span><strong>Class:</strong> ${ed.class||'—'}</span><span><strong>Date:</strong> ${dateStr}</span><span><strong>Duration:</strong> ${ed.duration||'3 Hrs'}</span><span><strong>Max. Marks:</strong> ${totalMarks||ed.totalMarks||'—'}</span></div><div class="thin-div"></div><div class="paper-title">${ed.examType||'Question Paper'}</div><div class="thin-div"></div>${sectionsHTML}<div class="thin-div"></div><div class="sig-block"><div class="sig-line"><div>Subject Teacher</div></div><div class="sig-line"><div>HOD / Principal</div></div><div class="sig-line"><div>Exam Controller</div></div></div></div>`;
+    } else {
+      bodyHTML = `<div class="paper-wrap"><div class="header"><div class="inst-name">${ed.institutionName||'Institution Name'}</div>${ed.institutionAddress?`<div class="inst-addr">${ed.institutionAddress}</div>`:''}</div><div class="thick-div"></div><table class="meta-table"><tr><td><strong>Subject:</strong> ${ed.subject||'—'}</td><td style="text-align:right"><strong>Date:</strong> ${dateStr}</td></tr><tr><td><strong>Class:</strong> ${ed.class||'—'}</td><td style="text-align:right"><strong>Duration:</strong> ${ed.duration||'3 Hours'}</td></tr><tr><td><strong>Exam:</strong> ${ed.examType||'—'}</td><td style="text-align:right"><strong>Max. Marks:</strong> ${totalMarks||'—'}</td></tr></table><div class="thin-div"></div><div class="paper-title">${ed.examType||'Question Paper'}</div><div class="thin-div"></div>${instructionsHTML}${sectionsHTML}</div>`;
+    }
 
-    const bodyHTML = isClassic
-      ? `<div class="paper-wrap">
-          <div class="inst-name">${ed.institutionName || 'Institution Name'}</div>
-          <div class="thin-div"></div>
-          <div class="classic-meta-row">
-            <span><strong>Name:</strong> ___________________</span>
-            <span><strong>Class:</strong> ${ed.class || '—'}</span>
-            <span><strong>Date:</strong> ${dateStr}</span>
-            <span><strong>Max. Marks:</strong> ${totalMarks || ed.totalMarks || '—'}</span>
-          </div>
-          <div class="thin-div"></div>
-          <div class="paper-title">${ed.examType || 'Question Paper'}</div>
-          <div class="thin-div"></div>
-          ${instructionsHTML}${sectionsHTML}
-        </div>`
-      : `<div class="paper-wrap">
-          <div class="header">
-            <div class="inst-name">${ed.institutionName || 'Institution Name'}</div>
-            ${ed.institutionAddress ? `<div class="inst-addr">${ed.institutionAddress as string}</div>` : ''}
-          </div>
-          <div class="thick-div"></div>
-          <table class="meta-table">
-            <tr><td><strong>Subject:</strong> ${ed.subject || '—'}</td><td style="text-align:right"><strong>Date:</strong> ${dateStr}</td></tr>
-            <tr><td><strong>Class:</strong> ${ed.class || '—'}</td><td style="text-align:right"><strong>Duration:</strong> ${ed.duration || '3 Hours'}</td></tr>
-            <tr><td><strong>Exam:</strong> ${ed.examType || '—'}</td><td style="text-align:right"><strong>Max. Marks:</strong> ${totalMarks || '—'}</td></tr>
-          </table>
-          <div class="thin-div"></div>
-          <div class="paper-title">${ed.examType || 'Question Paper'}</div>
-          <div class="thin-div"></div>
-          ${instructionsHTML}${sectionsHTML}
-        </div>`;
-
-    const fullHtml = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${paperTitle}</title>
-  <style>${css}</style>
-</head>
-<body>
-  ${bodyHTML}
-  <script>
-    window.onload = function() { window.print(); };
-  </script>
-</body>
-</html>`;
+    const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${paperTitle}</title><style>${css}</style></head><body>${bodyHTML}<script>window.onload=function(){window.print();};<\/script></body></html>`;
 
     const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-
     if (isMobile) {
       const blob = new Blob([fullHtml], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${(paperTitle).replace(/[^a-z0-9]/gi, '_').toLowerCase()}.html`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success('Downloaded! Open the file and print/save as PDF.', { id: 'pdf-' + paper.id, duration: 4000 });
+      a.download = `${paperTitle.replace(/[^a-z0-9]/gi,'_').toLowerCase()}.html`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+      toast.success('Downloaded! Open the file and print/save as PDF.', { id: 'pdf-'+paper.id, duration: 4000 });
     } else {
       const pw = window.open('', '_blank');
-      if (!pw) {
-        toast.error('Popup blocked.', { id: 'pdf-' + paper.id });
-        return;
-      }
-      pw.document.write(fullHtml);
-      pw.document.close();
-      pw.focus();
+      if (!pw) { toast.error('Popup blocked.', { id: 'pdf-'+paper.id }); return; }
+      pw.document.write(fullHtml); pw.document.close(); pw.focus();
       setTimeout(() => { pw.print(); pw.close(); }, 600);
-      toast.success(`${paperTitle} — PDF ready!`, { id: 'pdf-' + paper.id });
+      toast.success(`${paperTitle} — PDF ready!`, { id: 'pdf-'+paper.id });
     }
-
   } catch {
-    toast.error('PDF export failed.', { id: 'pdf-' + paper.id });
+    toast.error('PDF export failed.', { id: 'pdf-'+paper.id });
   } finally {
     setPdfExportingId(null);
   }
 };
+
   // ── RENAME ────────────────────────────
   const handleRename = (paper: Record<string, unknown>) => {
     setRenameId(paper.id as string);
@@ -619,7 +547,7 @@ const handleExportPdf = async (paper: Record<string, unknown>) => {
           </span>
           <button
             onClick={() => setPage(p => p + 1)}
-            disabled={!pagination.hasNext}
+            disabled={page >= pagination.totalPages}
             style={{ padding: '7px 16px', background: 'hsl(222 41% 12%)', border: '1px solid hsl(217 33% 18%)', borderRadius: '8px', color: '#94a3b8', fontSize: '13px', cursor: !pagination.hasNext ? 'not-allowed' : 'pointer', opacity: !pagination.hasNext ? 0.5 : 1 }}
           >
             Next →
