@@ -269,6 +269,35 @@ export default function TemplatesPage() {
   const isPlanAllowed = (template: typeof TEMPLATES[0]) =>
     template.plans.includes(userPlan);
 
+  const downloadSample = (template: typeof TEMPLATES[0]) => {
+    const cssMap: Record<string, string> = {
+      tpl_school: `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:13px;color:#111;line-height:1.6}.wrap{padding:16mm;width:210mm;margin:0 auto;min-height:297mm;border:3px double #1a2e5a}.inst{text-align:center;font-size:18px;font-weight:bold;text-transform:uppercase;color:#1a2e5a;margin-bottom:4px}.divider{border-top:2px solid #1a2e5a;margin:5px 0}.thin{border-top:1px solid #1a2e5a;margin:4px 0}.meta{display:flex;justify-content:space-between;font-size:12px;margin:4px 0}.title{text-align:center;font-size:16px;font-weight:bold;text-transform:uppercase;color:#1a2e5a;text-decoration:underline;margin:6px 0}.sec{text-align:center;border:1px solid #1a2e5a;padding:4px;font-weight:bold;font-size:13px;text-transform:uppercase;color:#1a2e5a;background:#f0f4ff;margin:10px 0 8px}.q{margin-bottom:12px}.qrow{display:flex;gap:5px}.qnum{font-weight:bold;min-width:20px}.qtext{flex:1;font-size:13px}.mcq{display:grid;grid-template-columns:1fr 1fr;gap:5px 20px;margin:5px 0 0 24px;font-size:12px}.aline{border-bottom:1px solid #ddd;height:20px;margin:4px 0 4px 24px}.sig{display:flex;justify-content:space-between;margin-top:20px}.sigline{text-align:center;width:30%;border-top:1px solid #999;padding-top:4px;font-size:11px;color:#555}@media print{body{margin:0}.wrap{padding:12mm}}`,
+      tpl_classic: `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:13px;color:#111;line-height:1.6}.wrap{padding:16mm;width:210mm;margin:0 auto;min-height:297mm}.inst{text-align:center;font-size:18px;font-weight:bold;text-transform:uppercase;color:#111;margin-bottom:4px}.thin{border-top:1px solid #555;margin:4px 0}.metarow{display:flex;justify-content:space-between;flex-wrap:wrap;gap:5px;font-size:12px;padding-bottom:5px;border-bottom:1px solid #888;margin-bottom:5px}.title{text-align:center;font-size:16px;font-weight:bold;text-transform:uppercase;color:#111;margin:5px 0}.sec{text-align:center;border:1px solid #333;padding:4px;font-weight:bold;font-size:13px;text-transform:uppercase;background:#f5f5f5;margin:10px 0 8px}.q{margin-bottom:12px}.qrow{display:flex;gap:5px}.qnum{font-weight:bold;min-width:20px}.qtext{flex:1;font-size:13px}.mcq{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;margin:5px 0 0 24px;font-size:12px}.aline{border-bottom:1px solid #ddd;height:20px;margin:4px 0 4px 24px}@media print{body{margin:0}.wrap{padding:12mm}}`,
+      tpl_worksheet: `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Calibri',sans-serif;font-size:12px;color:#111;line-height:1.5}.wrap{padding:14mm;width:210mm;margin:0 auto;min-height:297mm}.wstitle{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;color:#1F2937;margin-bottom:6px}.wsrow{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-top:1px solid #1F2937;border-bottom:1px solid #1F2937;margin-bottom:8px}.sec{text-align:center;border:1px solid #1F2937;padding:3px;font-weight:bold;font-size:11px;text-transform:uppercase;color:#1F2937;background:#F3F4F6;margin:6px 0}.q{margin-bottom:6px}.qrow{display:flex;gap:4px}.qnum{font-weight:bold;min-width:18px}.qtext{flex:1;font-size:12px}.mcq{display:flex;margin:3px 0 0 22px;font-size:11px}.mcqopt{flex:1}.aline{border-bottom:1px solid #ddd;height:16px;margin:3px 0 3px 22px}.footer{text-align:right;font-size:10px;color:#666;border-top:1px solid #ddd;margin-top:8px;padding-top:4px}@media print{body{margin:0}.wrap{padding:10mm}}`,
+      tpl_professional: `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Arial',sans-serif;font-size:13px;color:#111;line-height:1.6}.wrap{padding:16mm;width:210mm;margin:0 auto;min-height:297mm;border:1px solid #1F2937}.prohead{display:flex;gap:12px;margin-bottom:10px}.logo{width:70px;height:70px;border-radius:50%;border:2px solid #1F2937;display:flex;align-items:center;justify-content:center;font-size:10px;color:#aaa;flex-shrink:0;text-align:center}.info{flex:1;border:2px solid #1F2937;border-radius:4px;overflow:hidden}.infoname{font-weight:bold;font-size:14px;color:#fff;text-transform:uppercase;background:#1F2937;padding:6px 10px}.infoline{font-size:11px;color:#333;padding:2px 10px}.metarow{display:flex;justify-content:space-between;font-size:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:5px 10px;margin-bottom:8px}.thin{border-top:1px solid #1F2937;margin:5px 0}.title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;color:#1F2937;text-decoration:underline;margin:6px 0}.sec{text-align:center;border:1px solid #1F2937;padding:4px;font-weight:bold;font-size:12px;text-transform:uppercase;color:#1F2937;background:#f0f4ff;margin:10px 0 8px}.q{margin-bottom:10px}.qrow{display:flex;gap:5px}.qnum{font-weight:bold;min-width:20px}.qtext{flex:1;font-size:13px}.mcq{display:grid;grid-template-columns:1fr 1fr;gap:5px 20px;margin:5px 0 0 24px;font-size:12px}.aline{border-bottom:1px solid #ddd;height:20px;margin:4px 0 4px 24px}.sig{display:flex;justify-content:space-between;margin-top:20px}.sigline{text-align:center;width:30%;border-top:1px solid #999;padding-top:4px;font-size:11px;color:#555}@media print{body{margin:0}.wrap{padding:12mm;border:1px solid #1F2937}}`,
+    };
+    const htmlMap: Record<string, string> = {
+      tpl_school: `<div class="wrap"><div class="inst">SAMPLE INSTITUTION NAME</div><div class="divider"></div><div class="meta"><span>Subject: Mathematics</span><span>Date: DD/MM/YYYY</span></div><div class="meta"><span>Class: X</span><span>Duration: 3 Hours</span></div><div class="thin"></div><div class="title">SAMPLE QUESTION PAPER</div><div class="thin"></div><div class="sec">SECTION A — MCQ (1 Mark Each)</div><div class="q"><div class="qrow"><span class="qnum">1.</span><span class="qtext">This is a sample MCQ question. Choose the correct option.</span></div><div class="mcq"><div><b>(a)</b> Option A</div><div><b>(b)</b> Option B</div><div><b>(c)</b> Option C</div><div><b>(d)</b> Option D</div></div></div><div class="q"><div class="qrow"><span class="qnum">2.</span><span class="qtext">Another sample MCQ question for reference.</span></div><div class="mcq"><div><b>(a)</b> Option A</div><div><b>(b)</b> Option B</div><div><b>(c)</b> Option C</div><div><b>(d)</b> Option D</div></div></div><div class="sec">SECTION B — SHORT ANSWER (3 Marks Each)</div><div class="q"><div class="qrow"><span class="qnum">3.</span><span class="qtext">Sample short answer question. Write your answer below.</span></div><div class="aline"></div><div class="aline"></div></div><div class="sec">SECTION C — LONG ANSWER (5 Marks Each)</div><div class="q"><div class="qrow"><span class="qnum">4.</span><span class="qtext">Sample long answer question. Explain in detail.</span></div><div class="aline"></div><div class="aline"></div><div class="aline"></div><div class="aline"></div></div><div class="thin"></div><div class="sig"><div class="sigline">Subject Teacher</div><div class="sigline">HOD / Principal</div><div class="sigline">Exam Controller</div></div></div>`,
+      tpl_classic: `<div class="wrap"><div class="inst">SAMPLE INSTITUTION NAME</div><div class="thin"></div><div class="metarow"><span><b>Name:</b> ___________________</span><span><b>Class:</b> X</span><span><b>Date:</b> DD/MM/YYYY</span><span><b>Max. Marks:</b> 50</span></div><div class="thin"></div><div class="title">SAMPLE QUESTION PAPER</div><div class="thin"></div><div class="sec">SECTION A — MCQ (1 Mark Each)</div><div class="q"><div class="qrow"><span class="qnum">1.</span><span class="qtext">Sample MCQ question. Choose the correct option.</span></div><div class="mcq"><span><b>(a)</b> Option A</span><span><b>(b)</b> Option B</span><span><b>(c)</b> Option C</span><span><b>(d)</b> Option D</span></div></div><div class="q"><div class="qrow"><span class="qnum">2.</span><span class="qtext">Another sample MCQ question for reference.</span></div><div class="mcq"><span><b>(a)</b> Option A</span><span><b>(b)</b> Option B</span><span><b>(c)</b> Option C</span><span><b>(d)</b> Option D</span></div></div><div class="sec">SECTION B — SHORT ANSWER (3 Marks Each)</div><div class="q"><div class="qrow"><span class="qnum">3.</span><span class="qtext">Sample short answer question. Write your answer below.</span></div><div class="aline"></div><div class="aline"></div></div><div class="sec">SECTION C — LONG ANSWER (5 Marks Each)</div><div class="q"><div class="qrow"><span class="qnum">4.</span><span class="qtext">Sample long answer question. Explain in detail.</span></div><div class="aline"></div><div class="aline"></div><div class="aline"></div></div></div>`,
+      tpl_worksheet: `<div class="wrap"><div class="wstitle">SAMPLE WORKSHEET</div><div class="wsrow"><span><b>Name:</b> _____________________________</span><span><b>Date:</b> DD/MM/YYYY</span></div><div class="sec">SECTION A — MCQ (1 Mark Each)</div><div class="q"><div class="qrow"><span class="qnum">1.</span><span class="qtext">Sample MCQ question for worksheet.</span></div><div class="mcq"><span class="mcqopt"><b>(a)</b> Opt A</span><span class="mcqopt"><b>(b)</b> Opt B</span><span class="mcqopt"><b>(c)</b> Opt C</span><span class="mcqopt"><b>(d)</b> Opt D</span></div></div><div class="q"><div class="qrow"><span class="qnum">2.</span><span class="qtext">Another sample question here.</span></div><div class="mcq"><span class="mcqopt"><b>(a)</b> Opt A</span><span class="mcqopt"><b>(b)</b> Opt B</span><span class="mcqopt"><b>(c)</b> Opt C</span><span class="mcqopt"><b>(d)</b> Opt D</span></div></div><div class="sec">SECTION B — SHORT ANSWER</div><div class="q"><div class="qrow"><span class="qnum">3.</span><span class="qtext">Sample short answer question.</span></div><div class="aline"></div></div><div class="q"><div class="qrow"><span class="qnum">4.</span><span class="qtext">Another short answer question.</span></div><div class="aline"></div></div><div class="footer">Sample Institution Name</div></div>`,
+      tpl_professional: `<div class="wrap"><div class="prohead"><div class="logo">LOGO</div><div class="info"><div class="infoname">SAMPLE INSTITUTION NAME</div><div class="infoline">📍 City, State — 500001</div><div class="infoline">🏫 Dept. of Sample Department</div></div></div><div class="metarow"><span><b>Subject:</b> Mathematics</span><span><b>Class:</b> XII</span><span><b>Date:</b> DD/MM/YYYY</span><span><b>Duration:</b> 3 Hrs</span><span><b>Max. Marks:</b> 70</span></div><div class="thin"></div><div class="title">SAMPLE QUESTION PAPER</div><div class="thin"></div><div class="sec">SECTION A — MCQ (1 Mark Each)</div><div class="q"><div class="qrow"><span class="qnum">1.</span><span class="qtext">Sample MCQ question for professional template.</span></div><div class="mcq"><div><b>(a)</b> Option A</div><div><b>(b)</b> Option B</div><div><b>(c)</b> Option C</div><div><b>(d)</b> Option D</div></div></div><div class="sec">SECTION B — SHORT ANSWER (3 Marks Each)</div><div class="q"><div class="qrow"><span class="qnum">2.</span><span class="qtext">Sample short answer question. Write your answer below.</span></div><div class="aline"></div><div class="aline"></div></div><div class="sec">SECTION C — LONG ANSWER (5 Marks Each)</div><div class="q"><div class="qrow"><span class="qnum">3.</span><span class="qtext">Sample long answer question. Explain in detail.</span></div><div class="aline"></div><div class="aline"></div><div class="aline"></div></div><div class="thin"></div><div class="sig"><div class="sigline">Subject Teacher</div><div class="sigline">HOD / Principal</div><div class="sigline">Exam Controller</div></div></div>`,
+    };
+
+    const css = cssMap[template.id] || cssMap['tpl_school'];
+    const body = htmlMap[template.id] || htmlMap['tpl_school'];
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${template.name} Sample</title><style>${css}</style></head><body>${body}<script>window.onload=function(){window.print();};<\/script></body></html>`;
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${template.name.toLowerCase().replace(/\s+/g, '_')}_sample.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`${template.name} sample downloaded! Open the file to print/save as PDF.`, { duration: 3000 });
+  };
+
   const handleSelect = (template: typeof TEMPLATES[0]) => {
     if (!isPlanAllowed(template)) {
       toast.error(`🔒 Upgrade to ${template.plans[0]} to use the ${template.name} template.`);
@@ -537,6 +566,38 @@ export default function TemplatesPage() {
                     {isLocked ? '⬆ Upgrade' : 'Use Now →'}
                   </button>
                 </div>
+
+                {/* Download Sample button */}
+                <button
+                  onClick={() => downloadSample(template)}
+                  style={{
+                    width: '100%',
+                    marginTop: '8px',
+                    padding: '8px',
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px dashed rgba(255,255,255,0.15)',
+                    borderRadius: '8px',
+                    color: '#94a3b8',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)';
+                    (e.currentTarget as HTMLButtonElement).style.color = '#cbd5e1';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)';
+                    (e.currentTarget as HTMLButtonElement).style.color = '#94a3b8';
+                  }}
+                >
+                  ⬇ Download Sample
+                </button>
               </div>
             </div>
           );
