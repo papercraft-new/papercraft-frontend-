@@ -14,11 +14,11 @@ export const metadata = {
   title: 'Paptrix — AI Question Paper Generator for Indian Teachers',
   description: 'Paptrix helps Indian school and college teachers instantly create exam question papers using AI. Supports CBSE, ICSE, and State Boards.',
   keywords: ['Paptrix', 'question paper generator', 'AI exam paper maker', 'CBSE question paper', 'Indian teachers tool'],
-  metadataBase: new URL('https://paptrix.com'),  // ← your actual domain
+  metadataBase: new URL('https://paptrix.in'),  // ← your actual domain
   openGraph: {
     title: 'Paptrix — AI Question Paper Generator',
     description: 'Create exam papers in minutes with AI. Built for Indian teachers.',
-    url: 'https://paptrix.com',
+    url: 'https://paptrix.in',
     siteName: 'Paptrix',
     type: 'website',
   },
