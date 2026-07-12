@@ -10,10 +10,18 @@ const outfit = Outfit({
   display: 'swap',
 });
 
-export const metadata: Metadata = {
-  title: 'Paptrix— Professional Question Paper Formatter',
-  description:
-    'Turn handwritten notes and scanned PDFs into beautifully formatted exam papers. Powered by Claude AI.',
+export const metadata = {
+  title: 'Paptrix — AI Question Paper Generator for Indian Teachers',
+  description: 'Paptrix helps Indian school and college teachers instantly create exam question papers using AI. Supports CBSE, ICSE, and State Boards.',
+  keywords: ['Paptrix', 'question paper generator', 'AI exam paper maker', 'CBSE question paper', 'Indian teachers tool'],
+  metadataBase: new URL('https://paptrix.com'),  // ← your actual domain
+  openGraph: {
+    title: 'Paptrix — AI Question Paper Generator',
+    description: 'Create exam papers in minutes with AI. Built for Indian teachers.',
+    url: 'https://paptrix.com',
+    siteName: 'Paptrix',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({
