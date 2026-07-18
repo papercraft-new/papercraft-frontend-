@@ -62,7 +62,7 @@ export default function UploadPage() {
   // ─── plan-based limits ─────────────────────────────────────────────────
   const user = useAuthStore(s => s.user);
   const planType = user?.subscription?.plan?.type ?? 'FREE';
-  const MAX_FILES   = planType === 'INSTITUTION' ? 4 : planType === 'PRO' ? 3 : 1;
+  const MAX_FILES   = planType === 'INSTITUTION' ? 7 : planType === 'PRO' ? 4 : 1;
   const MAX_PDF_MB  = 20;
   const planLabel   = planType === 'INSTITUTION' ? 'Institution' : planType === 'PRO' ? 'Pro' : 'Free';
 
