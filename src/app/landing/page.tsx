@@ -58,198 +58,389 @@ function Navbar() {
 
 function Hero() {
   return (
-    <section className="min-h-screen flex items-center justify-center pt-16 px-6 relative overflow-hidden">
-      {/* Background orbs */}
+    <section className="min-h-screen flex flex-col items-center justify-center pt-20 pb-8 px-6 relative overflow-hidden">
+      {/* Background */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute w-[600px] h-[600px] bg-blue-600/20 rounded-full blur-[120px] -top-32 -left-32" />
-        <div className="absolute w-[400px] h-[400px] bg-cyan-500/15 rounded-full blur-[100px] bottom-0 right-0" />
-        <div className="absolute w-[300px] h-[300px] bg-violet-600/10 rounded-full blur-[80px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute w-[700px] h-[700px] bg-blue-600/15 rounded-full blur-[140px] -top-48 -left-48" />
+        <div className="absolute w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[120px] bottom-0 right-0" />
+        <div className="absolute w-[400px] h-[400px] bg-violet-600/08 rounded-full blur-[100px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+        {/* Grid pattern */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+          backgroundSize: '60px 60px',
+        }} />
       </div>
 
-      <div className="max-w-4xl mx-auto text-center relative z-10">
-        {/* Badge */}
+      <div className="max-w-6xl mx-auto relative z-10 w-full">
+
+        {/* ── BADGE ── */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
+          className="flex justify-center mb-6"
         >
-          
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 text-xs font-semibold tracking-wide">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+            AI-Powered · Built for Indian Teachers
+          </div>
         </motion.div>
 
-        {/* Headline */}
+        {/* ── HEADLINE ── */}
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.1] mb-6 tracking-tight"
+          transition={{ duration: 0.55, delay: 0.1 }}
+          className="text-center text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.08] mb-5 tracking-tight"
         >
-          Turn Handwritten Notes Into{' '}
-          <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-300 bg-clip-text text-transparent">
-            Professional Question Papers
+          Your Rough Notes.{' '}
+          <br className="hidden sm:block" />
+          <span className="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent">
+            A Print-Ready Exam Paper.
           </span>
         </motion.h1>
 
-        {/* Subtitle */}
+        {/* ── SUBTITLE ── */}
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
+          className="text-center text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed"
         >
-          Upload images, scanned PDFs, or paste raw text. Our AI extracts, formats, and generates
-          DTP-quality exam papers ready to print in under 30 seconds.
+          Upload a photo of your handwritten questions, a scanned PDF, or paste raw text —
+          Paptrix AI formats it into a professional question paper in under 30 seconds.
         </motion.p>
 
-        {/* CTA Buttons */}
+        {/* ── CTAs ── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
+          className="flex flex-col sm:flex-row gap-3 justify-center mb-4"
         >
           <Link
             href="/auth/register"
-            className="flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:from-blue-500 hover:to-cyan-500 transition-all hover:-translate-y-0.5 text-base shadow-xl shadow-blue-500/25"
+            className="flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold rounded-xl hover:from-blue-500 hover:to-cyan-400 transition-all hover:-translate-y-0.5 text-base shadow-2xl shadow-blue-500/30"
           >
             <Zap className="w-5 h-5" />
-            Start Creating Free
+            Create Your First Paper — Free
           </Link>
           <a
             href="#how-it-works"
-            className="flex items-center justify-center gap-2 px-8 py-4 bg-secondary border border-border text-foreground font-semibold rounded-xl hover:bg-secondary/80 transition-all text-base"
+            className="flex items-center justify-center gap-2 px-8 py-4 bg-white/5 border border-white/10 text-foreground font-semibold rounded-xl hover:bg-white/10 transition-all text-base"
           >
             See How It Works
             <ArrowRight className="w-4 h-4" />
           </a>
         </motion.div>
 
-        {/* Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="flex flex-wrap justify-center gap-8 md:gap-16"
-        >
-          {[
-           { num: '24/7', label: 'AI Support' },
-           { num: '10x', label: 'Faster Workflow' },
-            { num: '90%', label: 'OCR Accuracy' },
-            { num: '30s', label: 'Avg Generation' },
-          ].map((s) => (
-            <div key={s.label} className="text-center">
-              <div className="text-2xl md:text-3xl font-extrabold text-blue-400">{s.num}</div>
-              <div className="text-xs text-muted-foreground uppercase tracking-wider mt-1">{s.label}</div>
-            </div>
-          ))}
-        </motion.div>
-
-        {/* ── URGENCY STRIP ── */}
-        <motion.div
+        <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="mt-6 mb-2 flex flex-wrap items-center justify-center gap-3"
+          transition={{ delay: 0.4 }}
+          className="text-center text-xs text-muted-foreground mb-14"
         >
-         
-          <div className="text-xs text-muted-foreground">· Free plan · No credit card</div>
-        </motion.div>
+          No credit card · Free plan · CBSE / ICSE / State Boards supported
+        </motion.p>
 
-        {/* ── TRUSTED BY STRIP ── */}
+        {/* ══════════════════════════════════════
+            MAIN VISUAL — matches reference image
+        ══════════════════════════════════════ */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.65 }}
-          className="mt-10 mb-4"
-        >
-          <p className="text-xs text-muted-foreground uppercase tracking-widest text-center mb-4">
-            
-          </p>
-          
-        </motion.div>
-
-        {/* Preview mockup */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 48 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.5 }}
-          className="mt-20 relative"
+          transition={{ duration: 0.8, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          className="relative"
         >
-          <div className="bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
-            {/* Browser chrome */}
-            <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 border-b border-border">
-              <div className="w-3 h-3 rounded-full bg-red-500/70" />
-              <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
-              <div className="w-3 h-3 rounded-full bg-green-500/70" />
-              <div className="flex-1 mx-4 bg-background rounded-md px-3 py-1 text-xs text-muted-foreground text-center">
-                Paptrix/dashboard
-              </div>
+          {/* Outer glow */}
+          <div className="absolute -inset-1 bg-gradient-to-r from-blue-600/20 via-cyan-500/10 to-blue-600/20 rounded-3xl blur-2xl" />
+
+          <div className="relative rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #0a0f1e 0%, #0d1528 50%, #0a0f1e 100%)' }}>
+
+            {/* ── HEADLINE INSIDE VISUAL (matching image) ── */}
+            <div className="text-center pt-8 pb-6 px-6">
+              <h2 className="text-2xl md:text-4xl font-extrabold text-white leading-tight mb-2">
+                From Handwritten Questions to{' '}
+                <span className="bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
+                  Professional Print-Ready Papers
+                </span>
+              </h2>
+              <p className="text-white/50 text-sm tracking-widest font-medium">
+                Upload. Extract. Format. Done.
+              </p>
             </div>
-            {/* Dashboard preview */}
-            <div className="grid grid-cols-5 h-64">
-              {/* Sidebar */}
-              <div className="col-span-1 bg-card border-r border-border p-3 space-y-2">
-                {['Overview', 'Upload', 'Builder', 'Templates', 'Papers'].map((item) => (
-                  <div
-                    key={item}
-                    className={`text-[10px] px-2 py-1.5 rounded-lg ${item === 'Builder' ? 'bg-primary/10 text-primary font-semibold' : 'text-muted-foreground'}`}
-                  >
-                    {item}
+
+            {/* ── 3-COLUMN: RAW | ARROW | FORMATTED ── */}
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_180px_1fr] gap-0 px-6 pb-6 items-center">
+
+              {/* ── LEFT: HANDWRITTEN PAPER ── */}
+              <div className="flex flex-col gap-3">
+                {/* Label */}
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-white/8 border border-white/12 rounded-lg">
+                    <span className="text-sm">✏️</span>
+                    <span className="text-[11px] font-semibold text-white/70">Handwritten / Raw Input</span>
                   </div>
-                ))}
-              </div>
-              {/* Editor */}
-              <div className="col-span-2 border-r border-border p-4">
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-3">Questions Editor</div>
-                {[
-                  { q: 'Q1. Which is NOT a vector quantity?', m: '1M', type: 'MCQ' },
-                  { q: 'Q2. Define Newton\'s third law...', m: '3M', type: 'Short' },
-                  { q: 'Q3. Derive v² = u² + 2as with diagram', m: '5M', type: 'Long' },
-                ].map((q) => (
-                  <div key={q.q} className="bg-muted/50 border border-border/50 rounded-lg p-2 mb-2">
-                    <div className="flex justify-between items-start gap-2">
-                      <span className="text-[9px] text-foreground leading-tight">{q.q}</span>
-                      <span className="text-[8px] text-primary font-bold shrink-0">{q.m}</span>
+                </div>
+
+                {/* Notebook paper */}
+                <div className="relative bg-white rounded-2xl shadow-2xl overflow-hidden" style={{ minHeight: '340px' }}>
+                  {/* Red left margin */}
+                  <div className="absolute left-8 top-0 bottom-0 w-px bg-red-400/60" />
+                  {/* Ruled lines */}
+                  {[...Array(16)].map((_, i) => (
+                    <div key={i} className="absolute left-0 right-0 border-b border-blue-200/40" style={{ top: `${36 + i * 22}px` }} />
+                  ))}
+                  {/* 3 hole punches */}
+                  {[60, 160, 260].map(top => (
+                    <div key={top} className="absolute left-2 w-3.5 h-3.5 rounded-full bg-gray-200 border border-gray-300" style={{ top }} />
+                  ))}
+
+                  {/* Content — cursive handwriting style */}
+                  <div className="relative pl-10 pr-4 pt-3" style={{
+                    fontFamily: 'var(--font-caveat), "Segoe Print", cursive',
+                    color: '#1e3a5f',
+                  }}>
+                    <div className="text-center text-[13px] font-bold text-blue-800 mb-2 underline" style={{ letterSpacing: '2px' }}>
+                      SECTION - A
                     </div>
-                    <span className="text-[8px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded mt-1 inline-block">{q.type}</span>
-                  </div>
-                ))}
-              </div>
-              {/* Preview */}
-              <div className="col-span-2 bg-gray-200/20 p-3 flex items-start justify-center">
-                <div className="bg-white w-full rounded shadow-lg p-3 text-[7px] font-serif text-gray-800">
-                  <div className="border-2 border-double border-blue-900 p-2">
-                    <div className="text-center font-bold uppercase text-[8px] border-b border-blue-900 pb-1 mb-1">
-                      Sunrise Public School
+                    {[
+                      { text: '1.  Attempt all Questions :', bold: true },
+                      { text: '   a)  Define photosynthesis.', bold: false },
+                      { text: '   b)  What is the chemical formula', bold: false },
+                      { text: '         of water ?', bold: false },
+                      { text: '   c)  Who is known as the father', bold: false },
+                      { text: '         of the Nation ?', bold: false },
+                      { text: '   d)  Solve : 2x + 3 = 11', bold: false },
+                      { text: '   e)  Convert 45° to radian.', bold: false },
+                    ].map((line, i) => (
+                      <div key={i} style={{
+                        fontSize: '11.5px',
+                        lineHeight: '22px',
+                        color: line.bold ? '#0f2d5a' : '#1e3a5f',
+                        fontWeight: line.bold ? 700 : 400,
+                        transform: `rotate(${i % 2 === 0 ? '-0.2deg' : '0.15deg'})`,
+                      }}>
+                        {line.text}
+                      </div>
+                    ))}
+
+                    <div className="text-center text-[13px] font-bold text-blue-800 mt-3 mb-1 underline" style={{ letterSpacing: '2px' }}>
+                      SECTION - B
                     </div>
-                    <div className="grid grid-cols-2 gap-1 text-[6px] mb-1">
-                      <span>Subject: Physics</span>
-                      <span>Date: 15 Jan 2025</span>
-                      <span>Class: X — A</span>
-                      <span>Marks: 70</span>
-                    </div>
-                    <div className="text-center font-bold uppercase text-[7px] border border-blue-900 my-1 py-0.5">
-                      Section A — MCQ
-                    </div>
-                    {[1, 2, 3].map((n) => (
-                      <div key={n} className="flex gap-1 mb-0.5 text-[6px]">
-                        <span className="font-bold">{n}.</span>
-                        <div className="bg-gray-100 flex-1 h-2 rounded" />
-                        <span className="font-bold">[1]</span>
+                    {[
+                      { text: '2.  Attempt any three Questions :', bold: true },
+                      { text: '   a)  Explain the process of', bold: false },
+                      { text: '         photosynthesis.', bold: false },
+                      { text: '   b)  Write short notes on', bold: false },
+                      { text: '         Human Heart.', bold: false },
+                      { text: '   c)  Solve : x² - 5x + 6 = 0', bold: false },
+                      { text: '   d)  What are the causes of', bold: false },
+                      { text: '         water pollution ?', bold: false },
+                    ].map((line, i) => (
+                      <div key={i} style={{
+                        fontSize: '11.5px',
+                        lineHeight: '22px',
+                        color: line.bold ? '#0f2d5a' : '#1e3a5f',
+                        fontWeight: line.bold ? 700 : 400,
+                        transform: `rotate(${i % 2 === 0 ? '0.1deg' : '-0.15deg'})`,
+                      }}>
+                        {line.text}
                       </div>
                     ))}
                   </div>
+
+                  {/* Bullet marks */}
+                  <div className="absolute left-9 w-2 h-2 rounded-full bg-gray-700" style={{ top: '78px' }} />
+                  <div className="absolute left-9 w-2 h-2 rounded-full bg-gray-700" style={{ top: '256px' }} />
+                </div>
+
+                {/* Input types row */}
+                <div className="flex gap-3 justify-center flex-wrap mt-1">
+                  {[
+                    { icon: '✏️', label: 'Handwritten\nNotes' },
+                    { icon: '📄', label: 'Scanned\nPDFs' },
+                    { icon: '📝', label: 'Word\nFiles' },
+                    { icon: '📋', label: 'Plain\nText' },
+                  ].map(item => (
+                    <div key={item.label} className="flex flex-col items-center gap-1 px-3 py-2 bg-white/4 border border-white/8 rounded-xl min-w-[60px]">
+                      <div className="w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-sm">
+                        {item.icon}
+                      </div>
+                      <span className="text-[8px] text-white/40 text-center leading-tight whitespace-pre-line">{item.label}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
+
+              {/* ── CENTRE: PAPTRIX AI ARROW ── */}
+              <div className="flex flex-col items-center justify-center gap-4 py-8 px-4">
+                {/* Logo + name */}
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/40">
+                    <Brain className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="text-white font-extrabold text-base tracking-tight">Paptrix</span>
+                </div>
+
+                {/* AI steps */}
+                <div className="flex flex-col gap-1.5 w-full text-center">
+                  {['AI Extracts', 'Organizes', 'Formats'].map((step, i) => (
+                    <motion.div
+                      key={step}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.8 + i * 0.2 }}
+                      className="text-[13px] font-bold text-white/80"
+                    >
+                      {step}
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Big blue arrow */}
+                <motion.div
+                  animate={{ x: [0, 6, 0] }}
+                  transition={{ repeat: Infinity, duration: 1.6, ease: 'easeInOut' }}
+                >
+                  <svg width="80" height="44" viewBox="0 0 80 44" fill="none">
+                    <defs>
+                      <linearGradient id="arrowGrad" x1="0" y1="0" x2="80" y2="0">
+                        <stop offset="0%" stopColor="#2563EB" />
+                        <stop offset="100%" stopColor="#06B6D4" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M0 22 L56 22 M42 8 L68 22 L42 36" stroke="url(#arrowGrad)" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </motion.div>
+              </div>
+
+              {/* ── RIGHT: FORMATTED PAPER ── */}
+              <div className="flex flex-col gap-3">
+                {/* Label */}
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/25 rounded-lg">
+                    <div className="w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center">
+                      <Check className="w-2 h-2 text-white" />
+                    </div>
+                    <span className="text-[11px] font-semibold text-emerald-400">Professional Print-Ready Paper</span>
+                  </div>
+                </div>
+
+                {/* White formatted paper */}
+                <div className="bg-white rounded-2xl shadow-2xl overflow-hidden" style={{ minHeight: '340px' }}>
+                  <div className="p-4 font-serif">
+
+                    {/* School header */}
+                    <div className="flex items-start gap-3 pb-3 mb-3 border-b-2 border-gray-800">
+                      {/* School crest */}
+                      <div className="w-10 h-10 rounded-full border-2 border-gray-700 flex items-center justify-center flex-shrink-0 bg-gray-50">
+                        <span className="text-[10px] text-gray-600 font-bold">🏫</span>
+                      </div>
+                      <div className="flex-1 text-center">
+                        <div className="text-[11px] font-extrabold text-gray-900 uppercase tracking-wide">Greenfield Public School</div>
+                        <div className="text-[8px] text-gray-500 mt-0.5">Annual Examination 2025-26</div>
+                        <div className="flex justify-between text-[7.5px] text-gray-600 mt-1.5">
+                          <span>Class: X</span>
+                          <span>Subject: Science</span>
+                          <span>Max. Marks: 80</span>
+                        </div>
+                        <div className="text-[7.5px] text-gray-600 text-left mt-0.5">Time: 3 Hours</div>
+                      </div>
+                    </div>
+
+                    {/* Section A */}
+                    <div className="text-center mb-2">
+                      <div className="text-[9px] font-extrabold text-gray-900 uppercase tracking-widest">Section – A</div>
+                      <div className="flex justify-between text-[7px] text-gray-500 mt-0.5">
+                        <span>(Attempt all questions)</span>
+                        <span>[10 × 1 = 10]</span>
+                      </div>
+                    </div>
+                    <div className="mb-3 pl-1">
+                      <div className="text-[8px] font-bold text-gray-800 mb-1">1.</div>
+                      {[
+                        '(a)  Define photosynthesis.',
+                        '(b)  What is the chemical formula of water?',
+                        '(c)  Who is known as the father of the Nation?',
+                        '(d)  Solve: 2x + 3 = 11',
+                        '(e)  Convert 45° to radian.',
+                      ].map((q, i) => (
+                        <div key={i} className="text-[7.5px] text-gray-700 leading-[14px] pl-3">{q}</div>
+                      ))}
+                    </div>
+
+                    <div className="border-t border-gray-300 my-2" />
+
+                    {/* Section B */}
+                    <div className="text-center mb-2">
+                      <div className="text-[9px] font-extrabold text-gray-900 uppercase tracking-widest">Section – B</div>
+                      <div className="flex justify-between text-[7px] text-gray-500 mt-0.5">
+                        <span>(Attempt any three questions)</span>
+                        <span>[3 × 5 = 15]</span>
+                      </div>
+                    </div>
+                    <div className="pl-1">
+                      <div className="text-[8px] font-bold text-gray-800 mb-1">2.</div>
+                      {[
+                        '(a)  Explain the process of photosynthesis.',
+                        '(b)  Write short notes on Human Heart.',
+                        '(c)  Solve: x² – 5x + 6 = 0',
+                        '(d)  What are the causes of water pollution?',
+                      ].map((q, i) => (
+                        <div key={i} className="text-[7.5px] text-gray-700 leading-[14px] pl-3">{q}</div>
+                      ))}
+                    </div>
+
+                    <div className="text-center mt-4 text-[7px] text-gray-500 font-semibold tracking-widest border-t border-gray-200 pt-2">
+                      P.T.O.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Download buttons */}
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.4 }}
+                  className="flex gap-2"
+                >
+                  <div className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-xl text-white text-[11px] font-bold shadow-lg shadow-blue-500/30 cursor-pointer">
+                    <Download className="w-3.5 h-3.5" /> Download PDF
+                  </div>
+                  <div className="flex items-center justify-center px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white/50 text-[11px] font-semibold cursor-pointer hover:bg-white/10 transition-all">
+                    DOCX
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+
+            {/* ── BOTTOM STATS BAR (matching image) ── */}
+            <div className="border-t border-white/6 px-6 py-4 bg-black/20 grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { icon: <Zap className="w-4 h-4 text-cyan-400" />, val: '30 Seconds', label: 'Average Paper Creation' },
+                { icon: <FileText className="w-4 h-4 text-cyan-400" />, val: 'Print Ready', label: 'Professional Formatting' },
+                { icon: <Upload className="w-4 h-4 text-cyan-400" />, val: 'Multiple Inputs', label: 'Handwriting, PDF, Word & Text' },
+                { icon: <Download className="w-4 h-4 text-cyan-400" />, val: 'DOCX & PDF', label: 'Ready to Edit & Print' },
+              ].map(s => (
+                <div key={s.val} className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                    {s.icon}
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-bold text-white">{s.val}</div>
+                    <div className="text-[9px] text-white/35">{s.label}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-          {/* Glow */}
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent pointer-events-none rounded-2xl" />
         </motion.div>
+
       </div>
     </section>
   );
 }
-
 // ─────────────────────────────────────────
 // FEATURES
 // ─────────────────────────────────────────
