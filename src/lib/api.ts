@@ -133,7 +133,7 @@ export const ocrApi = {
     if (paperId) fd.append('paperId', paperId);
     return apiClient.post('/ocr/upload', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 200000,
+      timeout: 500000,
     });
   },
 
@@ -144,7 +144,7 @@ export const ocrApi = {
     if (paperId) fd.append('paperId', paperId);
     return apiClient.post('/ocr/upload-multiple', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 200000, // 3 min — multiple files take longer
+      timeout: 500000, // 3 min — multiple files take longer
     });
   },
 
