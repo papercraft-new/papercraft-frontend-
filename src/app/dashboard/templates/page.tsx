@@ -285,17 +285,17 @@ export default function TemplatesPage() {
 
     const css = cssMap[template.id] || cssMap['tpl_school'];
     const body = htmlMap[template.id] || htmlMap['tpl_school'];
-    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${template.name} Sample</title><style>${css}</style></head><body>${body}<script>window.onload=function(){window.print();};<\/script></body></html>`;
-    const blob = new Blob([html], { type: 'text/html' });
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${template.name} Sample</title><style>${css}</style></head><body>${body}</body></html>`;
+    const blob = new Blob([html], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${template.name.toLowerCase().replace(/\s+/g, '_')}_sample.html`;
+    a.download = `${template.name.toLowerCase().replace(/\s+/g, '_')}_sample.doc`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success(`${template.name} sample downloaded! Open the file to print/save as PDF.`, { duration: 3000 });
+    toast.success(`${template.name} sample downloaded!`, { duration: 3000 });
   };
 
   const handleSelect = (template: typeof TEMPLATES[0]) => {
