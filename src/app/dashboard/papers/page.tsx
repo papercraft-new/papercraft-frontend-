@@ -187,7 +187,8 @@ const handleExportPdf = async (paper: Record<string, unknown>) => {
         if (q.type === 'MCQ') a = renderOptions(q.options);
         else if (q.type === 'TRUE_FALSE') a = '<div class="tf-options"><span><strong>(a)</strong> True</span><span><strong>(b)</strong> False</span></div>';
         else if (q.type === 'FILL_IN_BLANK') a = '<div class="fill-line"></div>';
-        else if (q.type === 'LONG_ANSWER') a = isWorksheet ? '<div class="answer-line"></div>'.repeat(2) : '<div class="answer-line"></div>'.repeat(6);
+        else if (q.type === 'SHORT_ANSWER') a = '';
+        else if (q.type === 'LONG_ANSWER') a = '';
         else if (q.type === 'DIAGRAM') a = '<div class="answer-line"></div>'.repeat(8);
         else a = '<div class="answer-line"></div>'.repeat(2);
         return `<div class="question"><div class="q-row"><span class="q-num">${q.number}.</span><span class="q-text">${q.text}</span></div>${a}</div>`;

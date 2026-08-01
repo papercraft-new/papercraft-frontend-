@@ -415,7 +415,8 @@ const [tempPaperName, setTempPaperName] = useState('');
             else if (q.type === 'TRUE_FALSE')
               a = `<div class="tf-options"><span><strong>(a)</strong> True</span><span><strong>(b)</strong> False</span></div>`;
             else if (q.type === 'FILL_IN_BLANK') a = '<div class="fill-line"></div>';
-            else if (q.type === 'LONG_ANSWER') a = lines(6);
+            else if (q.type === 'SHORT_ANSWER') a = '';
+            else if (q.type === 'LONG_ANSWER') a = '';
             else if (q.type === 'DIAGRAM') a = lines(8);
             else a = lines(2);
 
