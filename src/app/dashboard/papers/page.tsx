@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { papersApi } from '@/lib/api';
 import { usePaperStore } from '@/store/paperStore';
 import toast from 'react-hot-toast';
+import { downloadHtmlAsPdf } from '@/lib/pdfExport';
 import type { ExamDetails, Section } from '@/store/paperStore';
 
 // ─────────────────────────────────────────
@@ -220,13 +221,8 @@ const handleExportPdf = async (paper: Record<string, unknown>) => {
 
     const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
     if (isMobile) {
-      const blob = new Blob([fullHtml], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${paperTitle.replace(/[^a-z0-9]/gi,'_').toLowerCase()}.html`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-      toast.success('Downloaded! Open the file and print/save as PDF.', { id: 'pdf-'+paper.id, duration: 4000 });
+      await downloadHtmlAsPdf(fullHtml, `${paperTitle.replace(/[^a-z0-9]/gi,'_').toLowerCase()}.pdf`);
+      toast.success(`${paperTitle} — PDF downloaded!`, { id: 'pdf-'+paper.id, duration: 4000 });
     } else {
       const pw = window.open('', '_blank');
       if (!pw) { toast.error('Popup blocked.', { id: 'pdf-'+paper.id }); return; }

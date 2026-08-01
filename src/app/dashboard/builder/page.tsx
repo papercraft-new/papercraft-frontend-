@@ -8,6 +8,7 @@ import { PaperPreview } from '@/components/preview/PaperPreview';
 import { ExamDetailsModal } from '@/components/builder/ExamDetailsModal';
 import { AddQuestionModal } from '@/components/builder/AddQuestionModal';
 import toast from 'react-hot-toast';
+import { downloadHtmlAsPdf } from '@/lib/pdfExport';
 import type { Section, Question } from '@/store/paperStore';
 const isMobile = typeof navigator !== 'undefined' &&
   /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
@@ -516,7 +517,7 @@ const [tempPaperName, setTempPaperName] = useState('');
     return `<div class="paper-wrap"><div class="header"><div class="inst-name">${ed.institutionName||'Institution Name'}</div>${ed.institutionAddress ? `<div class="inst-addr">${ed.institutionAddress}</div>` : ''}</div><div class="thick-div"></div><table class="meta-table"><tr><td><strong>Subject:</strong> ${ed.subject||'—'}</td><td style="text-align:right"><strong>Date:</strong> ${dateStr}</td></tr><tr><td><strong>Class:</strong> ${ed.class||'—'}</td><td style="text-align:right"><strong>Duration:</strong> ${ed.duration||'3 Hours'}</td></tr><tr><td><strong>Max. Marks:</strong> ${totalMarksCalc||ed.totalMarks||'—'}</td><td style="text-align:right"></td></tr></table><div class="thin-div"></div><div class="paper-title">${ed.examType||'Question Paper'}</div><div class="thin-div"></div>${instHTML}${secHTML}<div class="thick-div"></div></div>`;
   };
 
- const handleExportPdf = () => {
+ const handleExportPdf = async () => {
   setIsExporting(true);
   try {
     const isClassic = templateId === 'tpl_classic';
@@ -560,17 +561,9 @@ const [tempPaperName, setTempPaperName] = useState('');
     const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
     if (isMobile) {
-      // Mobile: download as HTML file
-      const blob = new Blob([fullHtml], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${(title || 'question_paper').replace(/[^a-z0-9]/gi, '_').toLowerCase()}.html`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success('Downloaded! Open the file in your browser and print/save as PDF.');
+      // Mobile: generate a real PDF client-side and download it
+      await downloadHtmlAsPdf(fullHtml, `${(title || 'question_paper').replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`);
+      toast.success('PDF downloaded!');
     } else {
       // Desktop: open in new window and print
       const w = window.open('', '_blank');
