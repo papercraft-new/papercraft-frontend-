@@ -93,10 +93,10 @@ function Hero() {
           transition={{ duration: 0.55, delay: 0.1 }}
           className="text-center text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.08] mb-5 tracking-tight"
         >
-          Your Rough Notes.{' '}
+         From Handwritten Notes {' '}
           <br className="hidden sm:block" />
           <span className="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent">
-            A Print-Ready Exam Paper.
+            to Print-Ready Question Papers
           </span>
         </motion.h1>
 
@@ -1069,7 +1069,7 @@ export default function LandingPage() {
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <a
-              href={`https://wa.me/?text=${encodeURIComponent("🎓 Paptrix converts handwritten notes into professional question papers in 30 seconds using AI! Free to use 👇 https://paptrix.netlify.app")}`}
+              href={`https://wa.me/?text=${encodeURIComponent("🎓 Paptrix converts handwritten notes into professional question papers in 30 seconds using AI! Free to use 👇 https://paptrix.in")}`}
               target="_blank" rel="noopener noreferrer"
               style={{
                 display: 'flex', alignItems: 'center', gap: '8px',
@@ -1083,7 +1083,7 @@ export default function LandingPage() {
               Share on WhatsApp
             </a>
             <a
-              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent("Just discovered Paptrix — AI that converts handwritten notes into professional exam papers in 30 seconds 🎓 Free for teachers! https://paptrix.netlify.app")}`}
+              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent("Just discovered Paptrix — AI that converts handwritten notes into professional exam papers in 30 seconds 🎓 Free for teachers! https://paptrix.in")}`}
               target="_blank" rel="noopener noreferrer"
               style={{
                 display: 'flex', alignItems: 'center', gap: '8px',
@@ -1096,7 +1096,7 @@ export default function LandingPage() {
               Share on X
             </a>
             <button
-              onClick={() => { navigator.clipboard.writeText('https://paptrix.netlify.app'); alert('Link copied! Share it with your colleagues.'); }}
+              onClick={() => { navigator.clipboard.writeText('https://paptrix.'); alert('Link copied! Share it with your colleagues.'); }}
               style={{
                 display: 'flex', alignItems: 'center', gap: '8px',
                 background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
