@@ -234,6 +234,19 @@ export default function AdminPage() {
   const ocr = ocrData?.data?.data;
   const logs = activityData?.data?.data || [];
 
+  // Defensive dedupe: collapse any duplicate plan-type rows from the API
+  // into one entry per plan, so distribution bars/keys are always unique
+  // regardless of what the backend returns.
+  const planStats: { plan: string; count: number }[] = Object.values(
+    (stats?.usersByPlan || []).reduce(
+      (acc: Record<string, { plan: string; count: number }>, item: { plan: string; count: number }) => {
+        acc[item.plan] = { plan: item.plan, count: (acc[item.plan]?.count || 0) + item.count };
+        return acc;
+      },
+      {}
+    )
+  );
+
   if (!user || user.role === 'USER') return null;
 
   const card = (extra?: React.CSSProperties): React.CSSProperties => ({
@@ -349,7 +362,7 @@ export default function AdminPage() {
               {statsLoading ? (
                 <div style={{ color: '#64748b', fontSize: '13px' }}>Loading...</div>
               ) : (
-                (stats?.usersByPlan || []).map((item: { plan: string; count: number }) => {
+                (planStats || []).map((item: { plan: string; count: number }) => {
                   const total = stats?.totalUsers || 1;
                   const pct = Math.round((item.count / total) * 100);
                   const colors: Record<string, string> = { FREE: '#64748b', PRO: '#3b82f6', INSTITUTION: '#f59e0b' };
@@ -655,26 +668,19 @@ export default function AdminPage() {
             <StatCard
   icon="💰"
   label="Monthly Revenue"
-  value={`₹${(
-    (((stats?.usersByPlan || []).find(
-      (p: { plan: string; count: number }) => p.plan === 'PRO'
-    )?.count || 0) * 399) +
-    (((stats?.usersByPlan || []).find(
-      (p: { plan: string; count: number }) => p.plan === 'INSTITUTION'
-    )?.count || 0) * 899)
-  ).toLocaleString('en-IN')}`}
-  sub="Based on active subscriptions"
+  value={`₹${(stats?.mrr || 0).toLocaleString('en-IN')}`}
+  sub="Actual payments received this month"
   color="#fbbf24"
 />
-            <StatCard icon="👑" label="Pro Users" value={(stats?.usersByPlan || []).find((p: { plan: string; count: number }) => p.plan === 'PRO')?.count || 0} sub="₹399/month each" color="#60a5fa" />
-            <StatCard icon="🏢" label="Institution Users" value={(stats?.usersByPlan || []).find((p: { plan: string; count: number }) => p.plan === 'INSTITUTION')?.count || 0} sub="₹899/month each" color="#10b981" />
+            <StatCard icon="👑" label="Pro Users" value={(planStats || []).find((p: { plan: string; count: number }) => p.plan === 'PRO')?.count || 0} sub="₹399/month each" color="#60a5fa" />
+            <StatCard icon="🏢" label="Institution Users" value={(planStats || []).find((p: { plan: string; count: number }) => p.plan === 'INSTITUTION')?.count || 0} sub="₹899/month each" color="#10b981" />
           </div>
           <div style={card({ padding: '1.25rem' })}>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9', marginBottom: '1rem' }}>💰 Revenue Breakdown</div>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9', marginBottom: '1rem' }}>💰 Estimated Revenue by Plan</div>
             {[
-              { plan: 'Free', users: (stats?.usersByPlan || []).find((p: { plan: string }) => p.plan === 'FREE')?.count || 0, price: 0, color: '#64748b' },
-              { plan: 'Pro', users: (stats?.usersByPlan || []).find((p: { plan: string }) => p.plan === 'PRO')?.count || 0, price: 399, color: '#3b82f6' },
-              { plan: 'Institution', users: (stats?.usersByPlan || []).find((p: { plan: string }) => p.plan === 'INSTITUTION')?.count || 0, price: 899, color: '#f59e0b' },
+              { plan: 'Free', users: (planStats || []).find((p: { plan: string }) => p.plan === 'FREE')?.count || 0, price: 0, color: '#64748b' },
+              { plan: 'Pro', users: (planStats || []).find((p: { plan: string }) => p.plan === 'PRO')?.count || 0, price: 399, color: '#3b82f6' },
+              { plan: 'Institution', users: (planStats || []).find((p: { plan: string }) => p.plan === 'INSTITUTION')?.count || 0, price: 899, color: '#f59e0b' },
             ].map(item => (
               <div key={item.plan} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', marginBottom: '8px', background: 'hsl(222 47% 7%)', borderRadius: '10px' }}>
                 <div>
@@ -687,16 +693,9 @@ export default function AdminPage() {
               </div>
             ))}
             <div style={{ marginTop: '1rem', padding: '12px', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: '10px', display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '14px', fontWeight: 700, color: '#60a5fa' }}>Total MRR</span>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: '#60a5fa' }}>Total MRR (actual)</span>
               <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#60a5fa' }}>
-  ₹{(
-    (((stats?.usersByPlan || []).find(
-      (p: { plan: string; count: number }) => p.plan === 'PRO'
-    )?.count || 0) * 399) +
-    (((stats?.usersByPlan || []).find(
-      (p: { plan: string; count: number }) => p.plan === 'INSTITUTION'
-    )?.count || 0) * 899)
-  ).toLocaleString('en-IN')}
+  ₹{(stats?.mrr || 0).toLocaleString('en-IN')}
 </span>
             </div>
           </div>

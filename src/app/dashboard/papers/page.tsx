@@ -12,6 +12,122 @@ import type { ExamDetails, Section } from '@/store/paperStore';
 // TYPES & HELPERS
 // ─────────────────────────────────────────
 
+// MCQ option normalization — ported verbatim from builder/page.tsx so the
+// PDF generated here matches the PDF generated in the builder exactly.
+type MCQOption = { label: string; text: string; isCorrect: boolean };
+
+function splitOptions(text: string): { questionText: string; options: MCQOption[] } {
+  const options: MCQOption[] = [];
+  if (!text?.trim()) return { questionText: '', options: [] };
+  const normalizedText = text.replace(/\s+/g, ' ').trim();
+  const p1 = /\(([abcdABCD])\)\s*(.*?)(?=\s*\([abcdABCD]\)\s*|\s*$)/gi;
+  const p2 = /\b([abcdABCD])\)\s*(.*?)(?=\s+[abcdABCD]\)\s*|\s*$)/g;
+  const p3 = /\b([ABCD])\.\s*(.*?)(?=\s+[ABCD]\.\s*|\s*$)/g;
+  let matches: RegExpMatchArray[] = [];
+  let usedPattern = 0;
+  matches = [...normalizedText.matchAll(p1)];
+  if (matches.length >= 2) usedPattern = 1;
+  if (matches.length < 2) {
+    matches = [...normalizedText.matchAll(p2)];
+    if (matches.length >= 2) usedPattern = 2;
+  }
+  if (matches.length < 2) {
+    matches = [...normalizedText.matchAll(p3)];
+    if (matches.length >= 2) usedPattern = 3;
+  }
+  if (matches.length < 2) return { questionText: text.trim(), options: [] };
+  for (const m of matches) {
+    const label = m[1].toLowerCase();
+    const optText = m[2]
+      .trim()
+      .replace(/\s*\([abcdABCD]\)\s*$/, '')
+      .replace(/\s+[abcdABCD]\)\s*$/, '')
+      .replace(/\s+[ABCD]\.\s*$/, '')
+      .trim();
+    if (!options.find(o => o.label === label) && optText) {
+      options.push({ label, text: optText, isCorrect: false });
+    }
+  }
+  let questionText = normalizedText;
+  if (usedPattern === 1) {
+    const idx = normalizedText.search(/\s*\([abcdABCD]\)/i);
+    if (idx > 0) questionText = normalizedText.substring(0, idx).trim();
+  } else if (usedPattern === 2) {
+    const idx = normalizedText.search(/\s+[abcdABCD]\)/);
+    if (idx > 0) questionText = normalizedText.substring(0, idx).trim();
+  } else if (usedPattern === 3) {
+    const idx = normalizedText.search(/\s+[ABCD]\./);
+    if (idx > 0) questionText = normalizedText.substring(0, idx).trim();
+  }
+  questionText = questionText.replace(/[\[(]\d+\s*(?:marks?)?[\])]/gi, '').trim();
+  return { questionText, options };
+}
+
+function normalizeOptions(
+  rawOptions: Array<{ label: string; text: string; isCorrect?: boolean }> | undefined,
+  questionText: string
+): { cleanedQuestionText: string; fixedOptions: MCQOption[] } {
+  let fixedOptions: MCQOption[] = rawOptions
+    ? rawOptions.map(o => ({
+        label: (o.label || '').toLowerCase(),
+        text: o.text || '',
+        isCorrect: o.isCorrect ?? false,
+      }))
+    : [];
+  let cleanedQuestionText = questionText || '';
+
+  if (fixedOptions.length === 1 && fixedOptions[0].text.trim().length > 20) {
+    const s = splitOptions(fixedOptions[0].text);
+    if (s.options.length >= 2) fixedOptions = s.options;
+  }
+  if (fixedOptions.length === 2) {
+    const combined = fixedOptions.map(o => `(${o.label}) ${o.text}`).join(' ');
+    const s = splitOptions(combined);
+    if (s.options.length >= 3) fixedOptions = s.options;
+  }
+  if (fixedOptions.length === 0 && cleanedQuestionText) {
+    const s = splitOptions(cleanedQuestionText);
+    if (s.options.length >= 2) {
+      cleanedQuestionText = s.questionText;
+      fixedOptions = s.options;
+    }
+  }
+  if (fixedOptions.length >= 2 && cleanedQuestionText) {
+    const hasInline = /\([abcd]\)|\b[A-D]\./i.test(cleanedQuestionText);
+    if (hasInline) {
+      const s = splitOptions(cleanedQuestionText);
+      if (s.options.length >= 2) {
+        cleanedQuestionText = s.questionText;
+        s.options.forEach(opt => {
+          if (!fixedOptions.find(o => o.label === opt.label)) fixedOptions.push(opt);
+        });
+      }
+    }
+  }
+  fixedOptions = fixedOptions
+    .map(opt => ({
+      ...opt,
+      label: opt.label.toLowerCase(),
+      text: opt.text
+        .replace(/\s*\([abcdABCD]\)\s*.*$/i, '')
+        .replace(/\s+[abcdABCD]\)\s*.*$/i, '')
+        .replace(/\s+[ABCD]\.\s*.*$/i, '')
+        .replace(/[\[(]\d+\s*(?:marks?)?[\])]/gi, '')
+        .trim(),
+    }))
+    .filter(opt => opt.text.length > 0);
+
+  const seen = new Set<string>();
+  fixedOptions = fixedOptions.filter(opt => {
+    if (!opt.label || seen.has(opt.label)) return false;
+    seen.add(opt.label);
+    return true;
+  });
+
+  fixedOptions.sort((a, b) => a.label.localeCompare(b.label));
+  return { cleanedQuestionText, fixedOptions };
+}
+
 const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   READY:      { bg: 'rgba(16,185,129,0.15)',  color: '#10b981' },
   DRAFT:      { bg: 'rgba(245,158,11,0.15)',  color: '#f59e0b' },
@@ -169,56 +285,88 @@ const handleExportPdf = async (paper: Record<string, unknown>) => {
     const isProfessional = tmplId === 'tpl_professional';
     const dateStr = ed.date ? new Date(ed.date as string).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : '—';
 
-    const renderOptions = (options: Array<{ label: string; text: string }> | undefined) => {
-      if (!options || options.length === 0) return '';
-      const opts = options.length >= 4 ? options : [...options, ...Array(4 - options.length).fill({ label: '?', text: '___' })];
-      // Classic + Worksheet: single row
+    const renderOptions = (opts: Array<{ label: string; text: string }> | undefined, qt: string) => {
+      const { fixedOptions } = normalizeOptions(opts, qt);
+      const o =
+        fixedOptions.length > 0
+          ? fixedOptions
+          : [
+              { label: 'a', text: '___' },
+              { label: 'b', text: '___' },
+              { label: 'c', text: '___' },
+              { label: 'd', text: '___' },
+            ];
       if (isClassic || isWorksheet) {
-        return `<div class="mcq-options-inline">${opts.slice(0,4).map(opt => `<span class="mcq-opt-inline"><span class="opt-label">(${opt.label})</span> ${opt.text||'___'}</span>`).join('')}</div>`;
+        return `<div class="mcq-options-inline">${o
+          .map(x => `<span class="mcq-opt-inline"><span class="opt-label">(${x.label})</span> ${x.text}</span>`)
+          .join('')}</div>`;
       }
-      // Basic + Professional: 2×2 grid
-      return `<div class="mcq-options">${opts.slice(0,4).map(opt => `<div class="mcq-option"><span class="opt-label">(${opt.label})</span> ${opt.text||'___'}</div>`).join('')}</div>`;
+      return `<div class="mcq-options">${o
+        .map(x => `<div class="mcq-option"><span class="opt-label">(${x.label})</span> ${x.text}</div>`)
+        .join('')}</div>`;
     };
+
+    const lines = (n: number) =>
+      Array.from({ length: isWorksheet ? Math.min(n, 1) : n })
+        .map(() => '<div class="answer-line"></div>')
+        .join('');
 
     const sectionsHTML = sections.map(section => {
       const marksInfo = section.marksPerQuestion ? `(${section.marksPerQuestion} Mark${section.marksPerQuestion>1?'s':''} Each)` : section.totalMarks ? `[Total: ${section.totalMarks} Marks]` : '';
       const questionsHTML = section.questions.map(q => {
+        const { cleanedQuestionText } = normalizeOptions(q.options, q.text);
         let a = '';
-        if (q.type === 'MCQ') a = renderOptions(q.options);
+        if (q.type === 'MCQ') a = renderOptions(q.options, q.text);
         else if (q.type === 'TRUE_FALSE') a = '<div class="tf-options"><span><strong>(a)</strong> True</span><span><strong>(b)</strong> False</span></div>';
         else if (q.type === 'FILL_IN_BLANK') a = '<div class="fill-line"></div>';
         else if (q.type === 'SHORT_ANSWER') a = '';
         else if (q.type === 'LONG_ANSWER') a = '';
-        else if (q.type === 'DIAGRAM') a = '<div class="answer-line"></div>'.repeat(8);
-        else a = '<div class="answer-line"></div>'.repeat(2);
-        return `<div class="question"><div class="q-row"><span class="q-num">${q.number}.</span><span class="q-text">${q.text}</span></div>${a}</div>`;
+        else if (q.type === 'DIAGRAM') a = lines(8);
+        else a = lines(2);
+        return `<div class="question"><div class="q-row"><span class="q-num">${q.number}.</span><span class="q-text">${cleanedQuestionText || q.text}</span></div>${a}</div>`;
       }).join('');
       return `<div class="section"><div class="section-header">${section.title}${marksInfo?` <span class="section-marks">${marksInfo}</span>`:''}</div>${section.description?`<div class="section-desc">${section.description}</div>`:''}${questionsHTML}</div>`;
     }).join('');
 
-    const instructionsHTML = (!isWorksheet && !isProfessional) && (ed.instructions as string[]|undefined)?.length
+    const instructionsHTML = (ed.instructions as string[]|undefined)?.length
       ? `<div class="instructions"><div class="inst-title">General Instructions:</div><ol>${(ed.instructions as string[]).map(i=>`<li>${i}</li>`).join('')}</ol></div><div class="thin-div"></div>` : '';
 
-    const defaultCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:15px;color:#111;background:#fff;line-height:1.65}.paper-wrap{padding:15mm;width:210mm;margin:0 auto;min-height:297mm}.header{text-align:center;margin-bottom:7px}.inst-name{font-size:20px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;color:#1a2e5a}.inst-addr{font-size:13px;color:#555;margin-top:1px}.thick-div{border-top:2px solid #1a2e5a;margin:6px 0}.thin-div{border-top:1px solid #1a2e5a;margin:4px 0}.meta-table{width:100%;border-collapse:collapse;font-size:14px;margin:3px 0}.meta-table td{padding:2px 0}.paper-title{text-align:center;font-size:18px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#1a2e5a;margin:4px 0;text-decoration:underline}.instructions{font-size:13px;margin-bottom:5px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:2px}.instructions ol{padding-left:18px;line-height:1.7}.section{margin-bottom:12px}.section-header{text-align:center;border:1px solid #1a2e5a;padding:5px 10px;font-weight:bold;font-size:14px;text-transform:uppercase;color:#1a2e5a;background:#f0f4ff;margin:8px 0 6px}.section-marks{font-size:13px;font-weight:normal}.question{margin-bottom:14px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:24px;flex-shrink:0}.q-text{flex:1;line-height:1.65;font-size:17px}.mcq-options{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin-top:7px;margin-left:28px}.mcq-option{display:flex;gap:5px;font-size:16px}.opt-label{font-weight:bold;min-width:22px;flex-shrink:0}.tf-options{display:flex;gap:26px;margin-top:7px;margin-left:28px;font-size:16px}.fill-line{border-bottom:1px solid #bbb;height:22px;width:60%;margin-left:28px;margin-top:6px}.answer-line{border-bottom:1px solid #ddd;height:22px;margin:6px 0 6px 28px}@media print{body{margin:0;font-size:11pt}.paper-wrap{padding:14mm;width:auto}.q-text{font-size:13pt!important}.mcq-option,.mcq-opt-inline,.mcq-options-inline,.tf-options{font-size:12pt!important}.q-num{font-size:13pt!important}.question{page-break-inside:avoid}}`;
-    const classicCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:15px;color:#111;background:#fff;line-height:1.65}.paper-wrap{padding:15mm;width:210mm;margin:0 auto;min-height:297mm}.inst-name{text-align:center;font-size:20px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;color:#111;margin-bottom:4px}.classic-meta-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:14px;padding-bottom:6px;border-bottom:1px solid #888;margin-bottom:4px}.thin-div{border-top:1px solid #555;margin:5px 0}.paper-title{text-align:center;font-size:18px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#111;margin:4px 0}.section{margin-bottom:12px}.section-header{text-align:center;border:1px solid #333;padding:5px 10px;font-weight:bold;font-size:14px;text-transform:uppercase;color:#111;background:#f5f5f5;margin:8px 0 6px}.section-marks{font-size:13px;font-weight:normal}.question{margin-bottom:10px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:6px}.q-num{font-weight:bold;min-width:24px;flex-shrink:0}.q-text{flex:1;line-height:1.65;font-size:17px}.mcq-options-inline{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;margin-top:7px;margin-left:28px;font-size:16px}.mcq-opt-inline{white-space:nowrap}.opt-label{font-weight:bold}.tf-options{display:flex;gap:26px;margin-top:7px;margin-left:28px;font-size:16px}.fill-line{border-bottom:1px solid #bbb;height:22px;width:60%;margin-left:28px;margin-top:6px}.answer-line{border-bottom:1px solid #ddd;height:22px;margin:6px 0 6px 28px}@media print{body{margin:0;font-size:11pt}.paper-wrap{padding:14mm;width:auto}.q-text{font-size:13pt!important}.mcq-option,.mcq-opt-inline,.mcq-options-inline,.tf-options{font-size:12pt!important}.q-num{font-size:13pt!important}.question{page-break-inside:avoid}}`;
-    const worksheetCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Calibri',sans-serif;font-size:12px;color:#111;background:#fff;line-height:1.5}.paper-wrap{padding:12mm;width:210mm;margin:0 auto;min-height:297mm}.ws-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;color:#1F2937;margin-bottom:6px;letter-spacing:1px}.ws-name-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-top:1px solid #1F2937;border-bottom:1px solid #1F2937;margin-bottom:8px}.section{margin-bottom:6px}.section-header{text-align:center;border:1px solid #1F2937;padding:2px 6px;font-weight:bold;font-size:11px;text-transform:uppercase;color:#1F2937;background:#F3F4F6;margin:6px 0}.section-marks{font-size:11px;font-weight:normal}.question{margin-bottom:6px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:4px}.q-num{font-weight:bold;min-width:20px;flex-shrink:0}.q-text{flex:1;line-height:1.6;font-size:14px}.mcq-options-inline{display:flex;margin-top:4px;margin-left:22px;font-size:13px}.mcq-opt-inline{flex:1;white-space:nowrap}.opt-label{font-weight:bold}.tf-options{display:flex;gap:16px;margin-top:4px;margin-left:24px;font-size:13px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:55%;margin-left:24px;margin-top:4px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:3px 0 3px 24px}.ws-footer{text-align:right;font-size:11px;color:#666;border-top:1px solid #ddd;margin-top:10px;padding-top:4px}@media print{body{margin:0}.paper-wrap{padding:10mm}.question{page-break-inside:avoid}}`;
-    const professionalCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Arial',sans-serif;font-size:13px;color:#111;background:#fff;line-height:1.55}.paper-wrap{padding:15mm;width:210mm;margin:0 auto;min-height:297mm}.pro-header{display:flex;align-items:stretch;gap:12px;margin-bottom:8px}.pro-logo{width:64px;height:64px;border-radius:50%;border:2px solid #1F2937;display:flex;align-items:center;justify-content:center;font-size:10px;color:#aaa;flex-shrink:0;text-align:center}.pro-info{flex:1;border:2px solid #1F2937;border-radius:4px;overflow:hidden}.pro-info-name{font-weight:bold;font-size:14px;color:#fff;text-transform:uppercase;letter-spacing:0.5px;background:#1F2937;padding:5px 10px}.pro-info-line{font-size:11px;color:#333;padding:2px 10px;line-height:1.5}.pro-meta-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;font-size:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:4px 10px;margin-bottom:6px}.thin-div{border-top:1px solid #1F2937;margin:4px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;color:#1F2937;margin:5px 0 4px;text-decoration:underline;letter-spacing:1px}.section{margin-bottom:8px}.section-header{text-align:center;border:1px solid #1F2937;padding:3px 8px;font-weight:bold;font-size:12px;text-transform:uppercase;color:#1F2937;background:#f0f4ff;margin:8px 0 6px}.section-marks{font-size:11px;font-weight:normal}.question{margin-bottom:9px;page-break-inside:avoid}.q-row{display:flex;align-items:flex-start;gap:4px}.q-num{font-weight:bold;min-width:20px;flex-shrink:0}.q-text{flex:1;line-height:1.55;font-size:13px}.mcq-options{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin-top:6px;margin-left:24px}.mcq-option{display:flex;gap:5px;font-size:13px}.opt-label{font-weight:bold;min-width:18px;flex-shrink:0}.tf-options{display:flex;gap:20px;margin-top:4px;margin-left:24px;font-size:12px}.fill-line{border-bottom:1px solid #bbb;height:18px;width:60%;margin-left:24px;margin-top:4px}.answer-line{border-bottom:1px solid #ddd;height:18px;margin:4px 0 4px 24px}.sig-block{margin-top:20px;display:flex;justify-content:space-between}.sig-line{text-align:center;width:30%}.sig-line div{border-top:1px solid #999;padding-top:4px;font-size:10px;color:#555}@media print{body{margin:0}.paper-wrap{padding:10mm}.question{page-break-inside:avoid}}`;
+    const defaultCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:13px;color:#111;background:#fff;line-height:1.4}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm;position:relative}.header{text-align:center;margin-bottom:8px}.inst-name{font-size:22px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#1a2e5a}.inst-addr{font-size:12px;color:#555;margin-top:2px}.thick-div{border-top:2px solid #1a2e5a;margin:7px 0}.thin-div{border-top:1px solid #1a2e5a;margin:5px 0}.meta-table{width:100%;border-collapse:collapse;font-size:14.5px;margin:4px 0}.meta-table td{padding:2px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#1a2e5a;margin:5px 0;text-decoration:underline}.instructions{font-size:14px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.4}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #1a2e5a;padding:4px 8px;font-weight:bold;font-size:15px;text-transform:uppercase;color:#1a2e5a;background:#f0f4ff;margin:10px 0 8px}.section-marks{font-size:13px;font-weight:normal}.section-desc{text-align:center;font-size:13px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:8px;page-break-inside:avoid;break-inside:avoid}.q-row{overflow:hidden}.q-num{font-weight:bold;float:left;width:22px;padding-top:1px}.q-text{display:block;margin-left:28px;line-height:1.4;font-size:13px}.q-marks{font-weight:bold;font-size:13px;color:#1a2e5a;min-width:28px;text-align:right;flex-shrink:0;padding-top:1px}.mcq-options{margin-top:5px;margin-left:28px}.mcq-option{display:inline-block;width:47%;vertical-align:top;font-size:13px;margin-bottom:4px}.opt-label{font-weight:bold;display:inline-block;min-width:20px}.tf-options{margin-top:5px;margin-left:28px}.tf-options span{display:inline-block;margin-right:24px}.fill-line{border-bottom:1px solid #bbb;height:16px;width:60%;margin-left:28px;margin-top:4px}.answer-line{border-bottom:1px solid #ddd;height:16px;margin:4px 0 4px 28px}@media print{body{margin:0;font-size:11pt;line-height:1.4}.paper-wrap{padding:14mm;width:auto}.q-text{font-size:12pt!important}.mcq-option,.mcq-opt-inline,.mcq-options-inline,.tf-options{font-size:11pt!important}.q-num{font-size:12pt!important}.question{page-break-inside:avoid}}`;
+    const classicCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;font-size:13px;color:#111;background:#fff;line-height:1.4}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm}.inst-name{text-align:center;font-size:22px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#111;margin-bottom:4px}.classic-meta-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:13px;padding-bottom:6px;border-bottom:1px solid #888;margin-bottom:6px}.thin-div{border-top:1px solid #555;margin:5px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:#111;margin:5px 0}.instructions{font-size:14px;margin-bottom:6px}.inst-title{font-weight:bold;text-decoration:underline;margin-bottom:3px}.instructions ol{padding-left:18px;line-height:1.4}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #333;padding:4px 8px;font-weight:bold;font-size:15px;text-transform:uppercase;color:#111;background:#f5f5f5;margin:10px 0 8px}.section-marks{font-size:13px;font-weight:normal}.section-desc{text-align:center;font-size:13px;color:#555;font-style:italic;margin-bottom:6px}.question{margin-bottom:8px;page-break-inside:avoid;break-inside:avoid}.q-row{overflow:hidden}.q-num{font-weight:bold;float:left;width:22px;padding-top:1px}.q-text{display:block;margin-left:28px;line-height:1.4;font-size:13px}.q-marks{font-weight:bold;font-size:13px;color:#111;min-width:28px;text-align:right;flex-shrink:0;padding-top:1px}.mcq-options-inline{margin-top:5px;margin-left:28px;font-size:13px}.mcq-opt-inline{display:inline-block;width:24%;vertical-align:top;white-space:nowrap}.opt-label{font-weight:bold;margin-right:4px}.tf-options{margin-top:5px;margin-left:28px}.tf-options span{display:inline-block;margin-right:24px}.fill-line{border-bottom:1px solid #bbb;height:16px;width:60%;margin-left:28px;margin-top:4px}.answer-line{border-bottom:1px solid #ddd;height:16px;margin:4px 0 4px 28px}@media print{body{margin:0;font-size:11pt;line-height:1.4}.paper-wrap{padding:14mm;width:auto}.q-text{font-size:12pt!important}.mcq-option,.mcq-opt-inline,.mcq-options-inline,.tf-options{font-size:11pt!important}.q-num{font-size:12pt!important}.question{page-break-inside:avoid}}`;
+    const worksheetCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Calibri',sans-serif;font-size:12px;color:#111;background:#fff;line-height:1.4}.paper-wrap{padding:14mm;width:210mm;margin:0 auto;min-height:297mm}.ws-title{text-align:center;font-size:16px;font-weight:bold;text-transform:uppercase;color:#1F2937;margin-bottom:6px;letter-spacing:1px}.ws-name-row{display:flex;justify-content:space-between;font-size:10px;padding:4px 0;border-top:1px solid #1F2937;border-bottom:1px solid #1F2937;margin-bottom:8px}.section{margin-bottom:4px}.section-header{text-align:center;border:1px solid #1F2937;padding:2px 6px;font-weight:bold;font-size:10px;text-transform:uppercase;color:#1F2937;background:#F3F4F6;margin:4px 0}.section-marks{font-size:9px;font-weight:normal}.question{margin-bottom:4px;page-break-inside:avoid;break-inside:avoid}.q-row{overflow:hidden}.q-num{font-weight:bold;float:left;width:18px}.q-text{display:block;margin-left:22px;line-height:1.4;font-size:13px}.mcq-options-inline{margin-top:4px;margin-left:22px;font-size:13px}.mcq-opt-inline{display:inline-block;width:24%;vertical-align:top;white-space:nowrap}.opt-label{font-weight:bold;margin-right:4px}.tf-options{margin-top:5px;margin-left:22px}.tf-options span{display:inline-block;margin-right:16px}.fill-line{border-bottom:1px solid #bbb;height:16px;width:55%;margin-left:22px;margin-top:4px}.answer-line{border-bottom:1px solid #ddd;height:14px;margin:2px 0 2px 22px}.ws-footer{text-align:right;font-size:9px;color:#666;border-top:1px solid #ddd;margin-top:8px;padding-top:4px}@media print{body{margin:0;font-size:10pt;line-height:1.4}.paper-wrap{padding:10mm;width:auto}.q-text{font-size:11pt!important}.mcq-opt-inline,.mcq-options-inline,.tf-options{font-size:10pt!important}.q-num{font-size:11pt!important}.question{page-break-inside:avoid}}`;
+    const professionalCss = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Arial',sans-serif;font-size:13px;color:#111;background:#fff;line-height:1.4}.paper-wrap{padding:18mm;width:210mm;margin:0 auto;min-height:297mm}.pro-header{display:flex;align-items:stretch;gap:14px;margin-bottom:10px}.pro-logo{width:80px;height:80px;border-radius:50%;border:2px solid #1F2937;display:flex;align-items:center;justify-content:center;flex-shrink:0}.pro-logo-inner{font-size:10px;color:#aaa;text-align:center;line-height:1.3}.pro-info{flex:1;border:2px solid #1F2937;border-radius:4px;overflow:hidden}.pro-info-name{font-weight:bold;font-size:16px;color:#fff;text-transform:uppercase;letter-spacing:0.5px;background:#1F2937;padding:7px 12px}.pro-info-divider{height:1px;background:#e5e7eb}.pro-info-line{font-size:10.5px;color:#333;padding:3px 12px;line-height:1.6}.pro-meta-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;font-size:11px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:6px 10px;margin-bottom:8px}.thin-div{border-top:1px solid #1F2937;margin:6px 0}.paper-title{text-align:center;font-size:15px;font-weight:bold;text-transform:uppercase;color:#1F2937;margin:8px 0 6px;text-decoration:underline;letter-spacing:2px}.section{margin-bottom:10px}.section-header{text-align:center;border:1px solid #1F2937;padding:4px 8px;font-weight:bold;font-size:12px;text-transform:uppercase;color:#1F2937;background:#f0f4ff;margin:10px 0 8px}.section-marks{font-size:10px;font-weight:normal}.question{margin-bottom:8px;page-break-inside:avoid;break-inside:avoid}.q-row{overflow:hidden}.q-num{font-weight:bold;float:left;width:22px}.q-text{display:block;margin-left:28px;line-height:1.4;font-size:13px}.mcq-options{margin-top:5px;margin-left:28px}.mcq-option{display:inline-block;width:47%;vertical-align:top;font-size:13px;margin-bottom:4px}.mcq-opt-inline{display:inline-block;width:24%;vertical-align:top;white-space:nowrap}.opt-label{font-weight:bold;margin-right:4px}.tf-options{margin-top:5px;margin-left:28px}.tf-options span{display:inline-block;margin-right:24px}.fill-line{border-bottom:1px solid #bbb;height:16px;width:60%;margin-left:28px;margin-top:4px}.answer-line{border-bottom:1px solid #ddd;height:16px;margin:4px 0 4px 28px}.sig-block{margin-top:30px;display:flex;justify-content:space-between}.sig-line{text-align:center;width:30%}.sig-line div{border-top:1px solid #999;padding-top:5px;font-size:10px;color:#555}@media print{body{margin:0;font-size:11pt;line-height:1.4}.paper-wrap{padding:14mm;width:auto}.q-text{font-size:12pt!important}.mcq-option,.mcq-opt-inline,.mcq-options-inline,.tf-options{font-size:11pt!important}.q-num{font-size:12pt!important}.question{page-break-inside:avoid}}`;
 
     const css = isClassic ? classicCss : isWorksheet ? worksheetCss : isProfessional ? professionalCss : defaultCss;
 
     let bodyHTML = '';
     if (isClassic) {
-      bodyHTML = `<div class="paper-wrap"><div class="inst-name">${ed.institutionName||'Institution Name'}</div><div class="thin-div"></div><div class="classic-meta-row"><span><strong>Name:</strong> ___________________</span><span><strong>Class:</strong> ${ed.class||'—'}</span><span><strong>Date:</strong> ${dateStr}</span><span><strong>Max. Marks:</strong> ${totalMarks||ed.totalMarks||'—'}</span></div><div class="thin-div"></div><div class="paper-title">${ed.examType||'Question Paper'}</div><div class="thin-div"></div>${sectionsHTML}</div>`;
+      bodyHTML = `<div class="paper-wrap"><div class="inst-name">${ed.institutionName||'Institution Name'}</div><div class="thin-div"></div><div class="classic-meta-row"><span><strong>Name:</strong> ___________________</span><span><strong>Class:</strong> ${ed.class||'—'}</span><span><strong>Date:</strong> ${dateStr}</span><span><strong>Max. Marks:</strong> ${totalMarks||ed.totalMarks||'—'}</span></div><div class="paper-title">${ed.examType||'Question Paper'}</div><div class="thin-div"></div>${instructionsHTML}${sectionsHTML}</div>`;
     } else if (isWorksheet) {
       bodyHTML = `<div class="paper-wrap"><div class="ws-title">${paperTitle||ed.examType||'Worksheet'}</div><div class="ws-name-row"><span><strong>Name:</strong> _____________________________</span><span><strong>Date:</strong> ${dateStr}</span></div>${sectionsHTML}<div class="ws-footer">${ed.institutionName||''}</div></div>`;
     } else if (isProfessional) {
       const infoLines = [ed.institutionAddress?`<div class="pro-info-line">📍 ${ed.institutionAddress}</div>`:'', ed.department?`<div class="pro-info-line">🏫 Dept. of ${ed.department}</div>`:'', ed.facultyName?`<div class="pro-info-line">👤 Faculty: ${ed.facultyName}</div>`:''].filter(Boolean).join('');
-      bodyHTML = `<div class="paper-wrap"><div class="pro-header"><div class="pro-logo">LOGO</div><div class="pro-info"><div class="pro-info-name">${(ed.institutionName as string||'INSTITUTION NAME').toUpperCase()}</div>${infoLines}</div></div><div class="pro-meta-row"><span><strong>Subject:</strong> ${ed.subject||'—'}</span><span><strong>Class:</strong> ${ed.class||'—'}</span><span><strong>Date:</strong> ${dateStr}</span><span><strong>Duration:</strong> ${ed.duration||'3 Hrs'}</span><span><strong>Max. Marks:</strong> ${totalMarks||ed.totalMarks||'—'}</span></div><div class="thin-div"></div><div class="paper-title">${ed.examType||'Question Paper'}</div><div class="thin-div"></div>${sectionsHTML}<div class="thin-div"></div><div class="sig-block"><div class="sig-line"><div>Subject Teacher</div></div><div class="sig-line"><div>HOD / Principal</div></div><div class="sig-line"><div>Exam Controller</div></div></div></div>`;
+      bodyHTML = `<div class="paper-wrap"><div class="pro-header"><div class="pro-logo"><div class="pro-logo-inner">LOGO</div></div><div class="pro-info"><div class="pro-info-name">${(ed.institutionName as string||'INSTITUTION NAME').toUpperCase()}</div><div class="pro-info-divider"></div>${infoLines}</div></div><div class="pro-meta-row"><span><strong>Subject:</strong> ${ed.subject||'—'}</span><span><strong>Class:</strong> ${ed.class||'—'}</span><span><strong>Date:</strong> ${dateStr}</span><span><strong>Duration:</strong> ${ed.duration||'3 Hrs'}</span><span><strong>Max. Marks:</strong> ${totalMarks||ed.totalMarks||'—'}</span></div><div class="thin-div"></div><div class="paper-title">${ed.examType||'Question Paper'}</div><div class="thin-div"></div>${sectionsHTML}<div class="thin-div"></div><div class="sig-block"><div class="sig-line"><div>Subject Teacher</div></div><div class="sig-line"><div>HOD / Principal</div></div><div class="sig-line"><div>Exam Controller</div></div></div></div>`;
     } else {
-      bodyHTML = `<div class="paper-wrap"><div class="header"><div class="inst-name">${ed.institutionName||'Institution Name'}</div>${ed.institutionAddress?`<div class="inst-addr">${ed.institutionAddress}</div>`:''}</div><div class="thick-div"></div><table class="meta-table"><tr><td><strong>Subject:</strong> ${ed.subject||'—'}</td><td style="text-align:right"><strong>Date:</strong> ${dateStr}</td></tr><tr><td><strong>Class:</strong> ${ed.class||'—'}</td><td style="text-align:right"><strong>Duration:</strong> ${ed.duration||'3 Hours'}</td></tr><tr><td><strong>Exam:</strong> ${ed.examType||'—'}</td><td style="text-align:right"><strong>Max. Marks:</strong> ${totalMarks||'—'}</td></tr></table><div class="thin-div"></div><div class="paper-title">${ed.examType||'Question Paper'}</div><div class="thin-div"></div>${instructionsHTML}${sectionsHTML}</div>`;
+      bodyHTML = `<div class="paper-wrap"><div class="header"><div class="inst-name">${ed.institutionName||'Institution Name'}</div>${ed.institutionAddress?`<div class="inst-addr">${ed.institutionAddress}</div>`:''}</div><div class="thick-div"></div><table class="meta-table"><tr><td><strong>Subject:</strong> ${ed.subject||'—'}</td><td style="text-align:right"><strong>Date:</strong> ${dateStr}</td></tr><tr><td><strong>Class:</strong> ${ed.class||'—'}</td><td style="text-align:right"><strong>Duration:</strong> ${ed.duration||'3 Hours'}</td></tr><tr><td><strong>Max. Marks:</strong> ${totalMarks||ed.totalMarks||'—'}</td><td style="text-align:right"></td></tr></table><div class="thin-div"></div><div class="paper-title">${ed.examType||'Question Paper'}</div>${instructionsHTML}${sectionsHTML}<div class="thick-div"></div></div>`;
     }
 
-    const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${paperTitle}</title><style>${css}</style></head><body>${bodyHTML}<script>window.onload=function(){window.print();};<\/script></body></html>`;
+    const fullHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${paperTitle}</title>
+  <style>${css}</style>
+</head>
+<body>
+  ${bodyHTML}
+  <script>
+    window.onload = function() {
+      window.print();
+    };
+  </script>
+</body>
+</html>`;
 
     const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
     if (isMobile) {
