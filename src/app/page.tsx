@@ -131,7 +131,7 @@ export default function SplashPage() {
             textTransform: 'uppercase',
             fontWeight: 500,
           }}>
-            AI-Powered Question Paper Generator
+            AI-Powered Question Paper Designer
           </p>
         </div>
 
