@@ -111,7 +111,7 @@ export default function AdminPage() {
     {
       title: '📋 Plan Limits',
       items: [
-        { label: 'Free Plan — Papers/Month', value: '3', editable: true },
+        { label: 'Free  — Papers/Month', value: '3', editable: true },
         { label: 'Free Plan — Exports/Month', value: '6', editable: true },
         { label: 'Pro Plan — Papers/Month', value: '20', editable: true },
         { label: 'Pro Plan — Price', value: '₹399/month', editable: true },
