@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -66,6 +67,11 @@ function FieldError({ message }: { message?: string }) {
 export function ExamDetailsModal({ onClose }: ExamDetailsModalProps) {
   const { examDetails, setExamDetails } = usePaperStore();
 
+  // Instructions are optional: checkbox is ticked only if instructions already exist
+  const [showInstructions, setShowInstructions] = useState(
+    (examDetails.instructions?.length ?? 0) > 0
+  );
+
   const {
     register,
     control,
@@ -88,13 +94,17 @@ export function ExamDetailsModal({ onClose }: ExamDetailsModalProps) {
   });
 
   const onSubmit = (data: ExamFormData) => {
+    const { instructionsText, ...rest } = data;
+
     setExamDetails({
       ...examDetails,
-      ...data,
-      instructions: (data.instructionsText || '')
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean),
+      ...rest,
+      instructions: showInstructions
+        ? (instructionsText || '')
+            .split('\n')
+            .map((line) => line.trim())
+            .filter(Boolean)
+        : [],
     });
 
     toast.success('Exam details saved!');
@@ -168,17 +178,17 @@ export function ExamDetailsModal({ onClose }: ExamDetailsModalProps) {
             </div>
 
             <div>
-  <Label htmlFor="examType" className="mb-2 block text-sm font-medium">
-    Exam Type *
-  </Label>
-  <Input
-    id="examType"
-    {...register('examType')}
-    placeholder="e.g. Mid-term, Final Examination"
-    className="h-11"
-  />
-  <FieldError message={errors.examType?.message} />
-</div>
+              <Label htmlFor="examType" className="mb-2 block text-sm font-medium">
+                Exam Type *
+              </Label>
+              <Input
+                id="examType"
+                {...register('examType')}
+                placeholder="e.g. Mid-term, Final Examination"
+                className="h-11"
+              />
+              <FieldError message={errors.examType?.message} />
+            </div>
 
             <div>
               <Label htmlFor="date" className="mb-2 block text-sm font-medium">
@@ -194,30 +204,41 @@ export function ExamDetailsModal({ onClose }: ExamDetailsModalProps) {
             </div>
 
             <div>
-  <Label htmlFor="duration" className="mb-2 block text-sm font-medium">
-    Duration *
-  </Label>
-  <Input
-    id="duration"
-    {...register('duration')}
-    placeholder="e.g. 3 Hours"
-    className="h-11"
-  />
-  <FieldError message={errors.duration?.message} />
-</div>
-
-            <div className="md:col-span-2">
-              <Label htmlFor="instructionsText" className="mb-2 block text-sm font-medium">
-                General Instructions
+              <Label htmlFor="duration" className="mb-2 block text-sm font-medium">
+                Duration *
               </Label>
-              <Textarea
-                id="instructionsText"
-                {...register('instructionsText')}
-                placeholder={
-                  'All questions are compulsory.\nDraw neat diagrams wherever necessary.\nCalculators are not permitted.'
-                }
-                className="min-h-[130px] resize-y text-sm"
+              <Input
+                id="duration"
+                {...register('duration')}
+                placeholder="e.g. 3 Hours"
+                className="h-11"
               />
+              <FieldError message={errors.duration?.message} />
+            </div>
+
+            {/* OPTIONAL INSTRUCTIONS */}
+            <div className="md:col-span-2">
+              <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+                <input
+                  type="checkbox"
+                  checked={showInstructions}
+                  onChange={(e) => setShowInstructions(e.target.checked)}
+                  className="h-4 w-4 accent-primary"
+                />
+                Add General Instructions on paper
+                <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+              </label>
+
+              {showInstructions && (
+                <Textarea
+                  id="instructionsText"
+                  {...register('instructionsText')}
+                  placeholder={
+                    'All questions are compulsory.\nDraw neat diagrams wherever necessary.\nCalculators are not permitted.'
+                  }
+                  className="mt-3 min-h-[130px] resize-y text-sm"
+                />
+              )}
             </div>
           </div>
         </form>

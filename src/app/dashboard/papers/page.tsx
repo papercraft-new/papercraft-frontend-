@@ -285,6 +285,9 @@ const handleExportPdf = async (paper: Record<string, unknown>) => {
     const isProfessional = tmplId === 'tpl_professional';
     const dateStr = ed.date ? new Date(ed.date as string).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : '—';
 
+    const withBlank = (type: string, text: string) =>
+    type === 'FILL_IN_BLANK' && !/_{3,}/.test(text) ? `${text} ________________` : text;
+
     const renderOptions = (opts: Array<{ label: string; text: string }> | undefined, qt: string) => {
       const { fixedOptions } = normalizeOptions(opts, qt);
       const o =
@@ -296,16 +299,18 @@ const handleExportPdf = async (paper: Record<string, unknown>) => {
               { label: 'c', text: '___' },
               { label: 'd', text: '___' },
             ];
-      if (isClassic || isWorksheet) {
-        return `<div class="mcq-options-inline">${o
-          .map(x => `<span class="mcq-opt-inline"><span class="opt-label">(${x.label})</span> ${x.text}</span>`)
-          .join('')}</div>`;
-      }
-      return `<div class="mcq-options">${o
-        .map(x => `<div class="mcq-option"><span class="opt-label">(${x.label})</span> ${x.text}</div>`)
+      // Adaptive layout: short options -> 4 per row, medium -> 2 per row, long -> 1 per row
+      const maxLen = Math.max(...o.map(x => String(x.text || '').replace(/<[^>]*>/g, '').length));
+      const w = maxLen <= 12 ? '25%' : maxLen <= 30 ? '50%' : '100%';
+      return `<div style="margin-top:5px;margin-left:28px">${o
+        .map(
+          x =>
+            `<div class="mcq-option" style="display:inline-block;width:${w};vertical-align:top;box-sizing:border-box;padding-left:24px;padding-right:10px;text-indent:-24px;margin-bottom:4px"><span class="opt-label" style="display:inline-block;min-width:24px;margin-right:0;text-indent:0">(${x.label})</span>${x.text}</div>`
+        )
         .join('')}</div>`;
     };
 
+    
     const lines = (n: number) =>
       Array.from({ length: isWorksheet ? Math.min(n, 1) : n })
         .map(() => '<div class="answer-line"></div>')
@@ -318,12 +323,12 @@ const handleExportPdf = async (paper: Record<string, unknown>) => {
         let a = '';
         if (q.type === 'MCQ') a = renderOptions(q.options, q.text);
         else if (q.type === 'TRUE_FALSE') a = '<div class="tf-options"><span><strong>(a)</strong> True</span><span><strong>(b)</strong> False</span></div>';
-        else if (q.type === 'FILL_IN_BLANK') a = '<div class="fill-line"></div>';
+        else if (q.type === 'FILL_IN_BLANK') a = '';
         else if (q.type === 'SHORT_ANSWER') a = '';
         else if (q.type === 'LONG_ANSWER') a = '';
         else if (q.type === 'DIAGRAM') a = lines(8);
         else a = lines(2);
-        return `<div class="question"><div class="q-row"><span class="q-num">${q.number}.</span><span class="q-text">${cleanedQuestionText || q.text}</span></div>${a}</div>`;
+        return `<div class="question"><div class="q-row"><span class="q-num">${q.number}.</span><span class="q-text">${withBlank(q.type, cleanedQuestionText || q.text)}</span></div>${a}</div>`;
       }).join('');
       return `<div class="section"><div class="section-header">${section.title}${marksInfo?` <span class="section-marks">${marksInfo}</span>`:''}</div>${section.description?`<div class="section-desc">${section.description}</div>`:''}${questionsHTML}</div>`;
     }).join('');

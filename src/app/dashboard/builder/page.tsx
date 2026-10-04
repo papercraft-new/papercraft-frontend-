@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePaperStore } from '@/store/paperStore';
+import { useAuthStore } from '@/store/authStore';
 import { papersApi } from '@/lib/api';
 import { PaperPreview } from '@/components/preview/PaperPreview';
 import { ExamDetailsModal } from '@/components/builder/ExamDetailsModal';
@@ -240,6 +241,8 @@ function StepBar({
 
 export default function BuilderPage() {
   const router = useRouter();
+  const authUser = useAuthStore(s => s.user);
+  const userPlan: string = (authUser?.subscription?.plan?.type || 'FREE').toUpperCase();
   const {
     title,
     setTitle,
@@ -371,6 +374,9 @@ const [tempPaperName, setTempPaperName] = useState('');
     const isWorksheetHTML = tmplId === 'tpl_worksheet';
     const isProfessionalHTML = tmplId === 'tpl_professional';
 
+    const withBlank = (type: string, text: string) =>
+    type === 'FILL_IN_BLANK' && !/_{3,}/.test(text) ? `${text} ________________` : text;
+
     const renderOptions = (opts: Array<{ label: string; text: string }> | undefined, qt: string) => {
       const { fixedOptions } = normalizeOptions(opts, qt);
       const o =
@@ -382,18 +388,18 @@ const [tempPaperName, setTempPaperName] = useState('');
               { label: 'c', text: '___' },
               { label: 'd', text: '___' },
             ];
-      if (isClassic || isWorksheetHTML) {
-        // Classic + Worksheet: all 4 options in a single flex row
-        return `<div class="mcq-options-inline">${o
-          .map(x => `<span class="mcq-opt-inline"><span class="opt-label">(${x.label})</span> ${x.text}</span>`)
-          .join('')}</div>`;
-      }
-      // Default (Basic) + Professional: 2×2 grid
-      return `<div class="mcq-options">${o
-        .map(x => `<div class="mcq-option"><span class="opt-label">(${x.label})</span> ${x.text}</div>`)
+      // Adaptive layout: short options -> 4 per row, medium -> 2 per row, long -> 1 per row
+      const maxLen = Math.max(...o.map(x => String(x.text || '').replace(/<[^>]*>/g, '').length));
+      const w = maxLen <= 12 ? '25%' : maxLen <= 30 ? '50%' : '100%';
+      return `<div style="margin-top:5px;margin-left:28px">${o
+        .map(
+          x =>
+            `<div class="mcq-option" style="display:inline-block;width:${w};vertical-align:top;box-sizing:border-box;padding-left:24px;padding-right:10px;text-indent:-24px;margin-bottom:4px"><span class="opt-label" style="display:inline-block;min-width:24px;margin-right:0;text-indent:0">(${x.label})</span>${x.text}</div>`
+        )
         .join('')}</div>`;
     };
 
+    
     const lines = (n: number) =>
       Array.from({ length: isWorksheetHTML ? Math.min(n, 1) : n })
         .map(() => '<div class="answer-line"></div>')
@@ -414,15 +420,13 @@ const [tempPaperName, setTempPaperName] = useState('');
             if (q.type === 'MCQ') a = renderOptions(q.options, q.text);
             else if (q.type === 'TRUE_FALSE')
               a = `<div class="tf-options"><span><strong>(a)</strong> True</span><span><strong>(b)</strong> False</span></div>`;
-            else if (q.type === 'FILL_IN_BLANK') a = '<div class="fill-line"></div>';
+            else if (q.type === 'FILL_IN_BLANK') a = '';
             else if (q.type === 'SHORT_ANSWER') a = '';
             else if (q.type === 'LONG_ANSWER') a = '';
             else if (q.type === 'DIAGRAM') a = lines(8);
             else a = lines(2);
 
-            return `<div class="question"><div class="q-row"><span class="q-num">${q.number}.</span><span class="q-text">${
-              cleanedQuestionText || q.text
-            }</span></div>${a}</div>`;
+            return `<div class="question"><div class="q-row"><span class="q-num">${q.number}.</span><span class="q-text">${withBlank(q.type, cleanedQuestionText || q.text)}</span></div>${a}</div>`;
           })
           .join('');
 
@@ -793,6 +797,7 @@ const [tempPaperName, setTempPaperName] = useState('');
                   desc: 'Clean layout with minimal top header — name, class, date, marks. MCQ options in a single row.',
                   mcq: 'All 4 options in one line',
                   planRequired: null,
+                  allowedPlans: ['FREE', 'PRO', 'INSTITUTION'],
                 },
                 {
                   id: 'tpl_school',
@@ -802,6 +807,7 @@ const [tempPaperName, setTempPaperName] = useState('');
                   desc: 'Traditional double-border layout with full institution header, subject, class, and signature block.',
                   mcq: '2×2 grid options',
                   planRequired: null,
+                  allowedPlans: ['FREE', 'PRO', 'INSTITUTION'],
                 },
                 {
                   id: 'tpl_worksheet',
@@ -811,6 +817,7 @@ const [tempPaperName, setTempPaperName] = useState('');
                   desc: 'Student worksheet — title above, Name field, single border, ~20 questions per page.',
                   mcq: '2×2 grid options',
                   planRequired: 'PRO',
+                  allowedPlans: ['PRO', 'INSTITUTION'],
                 },
                 {
                   id: 'tpl_professional',
@@ -820,18 +827,18 @@ const [tempPaperName, setTempPaperName] = useState('');
                   desc: 'Formal layout with logo circle, institution info box, centred title, single page border.',
                   mcq: '2×2 grid options',
                   planRequired: 'INSTITUTION',
+                  allowedPlans: ['INSTITUTION'],
                 },
               ].map(tmpl => {
                 const isSelected = templateId === tmpl.id;
-                const isLockedTmpl = tmpl.planRequired && !['PRO','INSTITUTION'].includes(
-                  ((usePaperStore as unknown as { getState: () => { templateId: string } }).getState?.()?.templateId || '')
-                ) && tmpl.planRequired !== null;
+                const isLockedTmpl = !tmpl.allowedPlans.includes(userPlan);
                 return (
                   <div
                     key={tmpl.id}
                     onClick={() => {
-                      if (tmpl.planRequired) {
+                      if (isLockedTmpl) {
                         toast(`🔒 Upgrade to ${tmpl.planRequired} for the ${tmpl.name} template`, { icon: '⚠️' });
+                        return;
                       }
                       setTemplateId(tmpl.id);
                     }}
@@ -853,7 +860,7 @@ const [tempPaperName, setTempPaperName] = useState('');
                         fontSize: '10px', fontWeight: 700,
                         padding: '2px 7px', borderRadius: '10px',
                       }}>
-                        🔒 {tmpl.planRequired}
+                        {isLockedTmpl ? '🔒 ' : ''}{tmpl.planRequired}
                       </div>
                     )}
                     {/* Mini paper preview */}

@@ -197,7 +197,9 @@ function QuestionPreview({ question }: { question: Question }) {
           {question.number}.
         </div>
         <div style={{ flex: 1, fontSize: '11px', lineHeight: '1.6' }}>
-          {displayText}
+          {question.type === 'FILL_IN_BLANK' && !/_{3,}/.test(displayText)
+            ? `${displayText} ________________`
+            : displayText}
         </div>
         <div style={{ minWidth: '32px', textAlign: 'right', fontWeight: 'bold', fontSize: '10px', color: '#1a2e5a', flexShrink: 0, paddingTop: '1px', whiteSpace: 'nowrap' }}>
           [{question.marks}]
@@ -210,7 +212,10 @@ function QuestionPreview({ question }: { question: Question }) {
           marginTop: '5px',
           marginLeft: '30px',
           display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
+          gridTemplateColumns: (() => {
+            const maxLen = Math.max(...displayOptions.map((o) => String(o.text || '').length));
+            return maxLen <= 12 ? 'repeat(4, 1fr)' : maxLen <= 30 ? '1fr 1fr' : '1fr';
+          })(),
           gap: '4px 20px',
         }}>
           {displayOptions.map((opt) => (
@@ -230,11 +235,6 @@ function QuestionPreview({ question }: { question: Question }) {
           <span><strong>(a)</strong> True</span>
           <span><strong>(b)</strong> False</span>
         </div>
-      )}
-
-      {/* FILL IN BLANK */}
-      {question.type === 'FILL_IN_BLANK' && (
-        <div style={{ borderBottom: '1px solid #bbb', height: '18px', width: '60%', marginLeft: '30px', marginTop: '4px' }} />
       )}
 
       {/* ANSWER LINES */}

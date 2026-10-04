@@ -424,7 +424,7 @@ export default function BillingPage() {
                     },
                     { text: 'PDF export', included: true },
                     { text: 'DOCX export', included: plan.hasDocxExport },
-                    { text: 'All 2 templates', included: true },
+                    { text: plan.type === 'FREE' ? '2 templates' : plan.type === 'PRO' ? '3 templates' : 'All 4 templates', included: true },
                     {
                       text: '5 team members',
                       included: plan.hasTeamAccess,
@@ -556,17 +556,27 @@ export default function BillingPage() {
               </tr>
             </thead>
             <tbody>
-              {[
-                { feature: 'Papers/month', free: '3', pro: '30', inst: '70' },
-                { feature: 'Exports/month', free: '6', pro: '60', inst: '140' },
-                { feature: 'PDF Export', free: '✓', pro: '✓', inst: '✓' },
-                { feature: 'DOCX Export', free: '✗', pro: '✓', inst: '✓' },
-                { feature: 'Templates', free: '3', pro: 'All 6', inst: 'All 6' },
-                { feature: 'Custom Branding', free: '✗', pro: '✓', inst: '✓' },
-                { feature: 'Team Members', free: '1', pro: '1', inst: '50' },
-                { feature: 'Priority OCR', free: '✗', pro: '✓', inst: '✓' },
-                { feature: 'Price/month', free: '₹0', pro: '₹499', inst: '₹999' },
-              ].map((row) => (
+              {(() => {
+                const byType = (t: Plan['type']) => plans.find(p => p.type === t);
+                const free = byType('FREE');
+                const pro = byType('PRO');
+                const inst = byType('INSTITUTION');
+                const yn = (v?: boolean) => (v ? '✓' : '✗');
+                const num = (v?: number) => (v === undefined ? '—' : v === -1 ? 'Unlimited' : String(v));
+                const price = (p?: Plan) => (p ? formatINR(p.priceMonthly) : '—');
+                return [
+                  { feature: 'Papers/month', free: num(free?.papersPerMonth), pro: num(pro?.papersPerMonth), inst: num(inst?.papersPerMonth) },
+                  { feature: 'Exports/month', free: num(free?.exportsPerMonth), pro: num(pro?.exportsPerMonth), inst: num(inst?.exportsPerMonth) },
+                  { feature: 'PDF Export', free: '✓', pro: '✓', inst: '✓' },
+                  { feature: 'DOCX Export', free: yn(free?.hasDocxExport), pro: yn(pro?.hasDocxExport), inst: yn(inst?.hasDocxExport) },
+                  { feature: 'Templates', free: '2', pro: '3', inst: 'All 4' },
+                  { feature: 'Team Members', free: '✗', pro: '✗', inst: inst?.hasTeamAccess ? String(inst.maxTeamMembers) : '✗' },
+                  { feature: 'AI Assistant', free: '✗', pro: '✗', inst: '✓' },
+                  { feature: 'Priority Support', free: '✗', pro: '✓', inst: '✓' },
+                  { feature: 'Price/month', free: price(free), pro: price(pro), inst: price(inst) },
+                ];
+              })()
+.map((row) => (
                 <tr key={row.feature} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                   <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{row.feature}</td>
                   {[row.free, row.pro, row.inst].map((val, i) => (

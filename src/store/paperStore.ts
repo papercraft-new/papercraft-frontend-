@@ -110,11 +110,7 @@ const defaultExamDetails: ExamDetails = {
   date: new Date().toISOString().split('T')[0],
   duration: '3 Hours',
   totalMarks: 100,
-  instructions: [
-    'All questions are compulsory.',
-    'Read each question carefully before answering.',
-    'Write legibly and clearly.',
-  ],
+  instructions: [], // optional: user can add instructions from the Exam Details page
 };
 
 function generateId() {
