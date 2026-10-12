@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 7%;
+    --foreground: 213 31% 91%;
+    --card: 222 41% 12%;
+    --card-foreground: 213 31% 91%;
+    --popover: 222 41% 10%;
+    --popover-foreground: 213 31% 91%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 7%;
+    --secondary: 222 30% 18%;
+    --secondary-foreground: 213 31% 91%;
+    --muted: 222 30% 14%;
+    --muted-foreground: 215 20% 45%;
+    --accent: 189 95% 43%;
+    --accent-foreground: 222 47% 7%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 213 31% 91%;
+    --border: 217 33% 18%;
+    --input: 217 33% 16%;
+    --ring: 217 91% 60%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-outfit), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  html {
+    @apply scroll-smooth;
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: hsl(222 47% 7%); }
+  ::-webkit-scrollbar-thumb { background: hsl(217 33% 18%); border-radius: 4px; }
+}
+
+@layer components {
+  .btn-gradient {
+    @apply bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold
+           hover:from-blue-500 hover:to-cyan-500 transition-all duration-200
+           hover:-translate-y-0.5;
+  }
+  .card-hover {
+    @apply transition-all duration-200 hover:-translate-y-1;
+  }
+  .sidebar-item {
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium
+           text-muted-foreground transition-colors cursor-pointer
+           hover:bg-secondary hover:text-foreground;
+  }
+  .sidebar-item.active {
+    @apply bg-primary/10 text-primary;
+  }
+  .upload-zone {
+    @apply border-2 border-dashed border-border rounded-xl p-12 text-center
+           cursor-pointer transition-all hover:border-primary/50 hover:bg-primary/5;
+  }
+  .gradient-text {
+    @apply bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent;
+  }
+  .preview-paper-outer {
+    border: 3px double #1a2e5a;
+    padding: 12px;
+  }
+  .preview-paper-inner {
+    border: 1px solid #1a2e5a;
+    padding: 16px;
+  }
+  .preview-section-header {
+    text-align: center;
+    border: 1px solid #333;
+    padding: 4px 12px;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 12px 0 8px;
+  }
+  .preview-question {
+    font-size: 11px;
+    margin: 6px 0;
+    line-height: 1.5;
+  }
+  .preview-marks {
+    float: right;
+    font-weight: 700;
+    font-size: 10px;
+  }
+  .preview-answer-line {
+    border-bottom: 1px solid #ddd;
+    margin: 8px 0;
+    height: 20px;
+  }
+}
+
+@media print {
+  nav, .sidebar, .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
