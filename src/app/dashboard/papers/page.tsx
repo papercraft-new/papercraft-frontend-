@@ -7,6 +7,7 @@ import { usePaperStore } from '@/store/paperStore';
 import toast from 'react-hot-toast';
 import { downloadHtmlAsPdf } from '@/lib/pdfExport';
 import { buildPaperHtml } from '@/lib/paperRenderer';
+import { PublishTestModal } from '@/components/tests/PublishTestModal';
 import type { RenderExamDetails } from '@/lib/paperRenderer';
 import type { ExamDetails, Section } from '@/store/paperStore';
 
@@ -53,6 +54,7 @@ export default function PapersPage() {
   const [exportingId, setExportingId] = useState<string | null>(null);
   const [pdfExportingId, setPdfExportingId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [testPaper, setTestPaper] = useState<{ id: string; title: string } | null>(null);
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
 
@@ -383,6 +385,15 @@ const handleExportPdf = async (paper: Record<string, unknown>) => {
                             {pdfExportingId === paper.id ? '⏳' : '🖨️'} PDF
                           </button>
 
+                          {/* Publish as online test */}
+                          <button
+                            onClick={() => setTestPaper({ id: paper.id as string, title: (paper.title as string) || 'Untitled Paper' })}
+                            title="Publish as online test"
+                            style={{ padding: '5px 10px', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)', borderRadius: '7px', color: '#a78bfa', fontSize: '12px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                          >
+                            📝 Test
+                          </button>
+
                           {/* Download DOCX */}
                           <button
                             onClick={() => handleExportDocx(paper)}
@@ -466,6 +477,13 @@ const handleExportPdf = async (paper: Record<string, unknown>) => {
                       🖨️
                     </button>
                     <button
+                      onClick={() => setTestPaper({ id: paper.id as string, title: (paper.title as string) || 'Untitled Paper' })}
+                      style={{ padding: '6px 8px', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)', borderRadius: '6px', color: '#a78bfa', fontSize: '12px', cursor: 'pointer' }}
+                      title="Publish as online test"
+                    >
+                      📝
+                    </button>
+                    <button
                       onClick={() => handleExportDocx(paper)}
                       style={{ padding: '6px 8px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '7px', color: '#10b981', fontSize: '12px', cursor: 'pointer' }}
                       title="Download DOCX"
@@ -511,6 +529,8 @@ const handleExportPdf = async (paper: Record<string, unknown>) => {
       )}
 
       {/* DELETE CONFIRM MODAL */}
+      {testPaper && <PublishTestModal paper={testPaper} onClose={() => setTestPaper(null)} />}
+
       {deleteConfirm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div style={{ background: 'hsl(222 41% 12%)', border: '1px solid hsl(217 33% 18%)', borderRadius: '16px', padding: '2rem', maxWidth: '360px', width: '90%' }}>

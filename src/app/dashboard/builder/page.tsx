@@ -1279,6 +1279,25 @@ const displayText = cleanedQuestionText || question.text;
                   padding: '6px 10px',
                 }}
               >
+                {/* Correct answer (used by online tests; never printed) */}
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={!!opt.isCorrect}
+                  aria-label={`Option ${opt.label.toUpperCase()} is the correct answer`}
+                  title={opt.isCorrect ? 'Correct answer (tap to unmark)' : 'Mark as the correct answer'}
+                  onClick={() =>
+                    onUpdate({ options: displayOptions.map((o, j) => ({ ...o, isCorrect: j === i ? !opt.isCorrect : false })) })
+                  }
+                  style={{
+                    width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0, padding: 0, cursor: 'pointer',
+                    fontSize: '14px', lineHeight: 1, color: '#fff',
+                    border: opt.isCorrect ? '1px solid #10b981' : '1px solid #475569',
+                    background: opt.isCorrect ? '#10b981' : 'transparent',
+                  }}
+                >
+                  {opt.isCorrect ? '✓' : ''}
+                </button>
                 <span
                   style={{
                     fontSize: '12px',
@@ -1312,6 +1331,9 @@ const displayText = cleanedQuestionText || question.text;
                 />
               </div>
             ))}
+          </div>
+          <div style={{ marginTop: '6px', fontSize: '10px', color: '#64748b' }}>
+            Tap the circle in front of the correct option. It is used for online tests and is never printed on the paper.
           </div>
           {displayOptions.length < 4 && (
   <button
