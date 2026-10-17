@@ -60,6 +60,8 @@ export interface Question {
   images?: QuestionImage[];       // pictures shown under the question text (max 5)
   tables?: QuestionTable[];       // tables shown under the question text (max 3)
   match?: QuestionMatch;          // columns of a MATCH_FOLLOWING question (max 10 items per column)
+  multi?: boolean;                // MCQ with more than one correct option (online tests only, never printed)
+  numeric?: { answer: string; tolerance?: string }; // NUMERICAL: answer and +/- tolerance for online tests (never printed)
   figureBoxes?: FigureBox[];      // extraction only, removed by attachFigures() and never saved
   bloomLevel?: string;
   difficulty?: 'EASY' | 'MEDIUM' | 'HARD';

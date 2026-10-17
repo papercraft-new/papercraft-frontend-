@@ -3,7 +3,7 @@
 // One question as the student sees it. Equations, images and tables use the same helpers as the PDF
 // (paperRenderer.ts), so they look the same. Used for the live exam and for the review after submit.
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   mathToHtml, tableGrid, tableHasHeader, tableColumnPercents, imageWidthPct,
   QUESTION_IMAGE_PCT, OPTION_IMAGE_PCT,
@@ -98,17 +98,81 @@ function QuestionImages({ images, onZoom }: { images?: ExamImage[]; onZoom: (src
   );
 }
 
+const NUMBER_RE = /^-?(\d+\.?\d*|\.\d+)$/; // a finished number: "12", "-3.5", ".5", "7."
+const TYPING_RE = /^-?\d*\.?\d*$/;            // what may be typed on the way there
+
+/** The answer box of a numerical question. It keeps what is being typed, and only a finished number counts as an answer. */
+function NumberAnswer({ q, selected, onSelect, correct }: { q: ExamQuestion; selected: string | null; onSelect?: (v: string | null) => void; correct?: string }) {
+  const [text, setText] = useState(selected ?? '');
+  useEffect(() => {
+    if (selected !== null && selected !== text) setText(selected);          // loaded or restored
+    else if (selected === null && NUMBER_RE.test(text)) setText('');        // Clear Response
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected]);
+
+  const review = correct !== undefined;
+  const answer = review ? Number(correct) : NaN;
+  const mine = selected !== null ? Number(selected) : NaN;
+  const right = review && Number.isFinite(mine) && Math.abs(mine - answer) <= (q.tolerance || 0) + 1e-9;
+  const tone = !review ? 'border-slate-300 focus:border-blue-600' : selected === null ? 'border-slate-300' : right ? 'border-emerald-500 bg-emerald-50' : 'border-red-500 bg-red-50';
+
+  return (
+    <div className="mt-4 sm:pl-8">
+      <label htmlFor={`nat-${q.id}`} className="text-sm font-semibold text-slate-700">Your answer (a number)</label>
+      <input
+        id={`nat-${q.id}`}
+        type="text"
+        inputMode="decimal"
+        autoComplete="off"
+        spellCheck={false}
+        readOnly={!onSelect}
+        value={text}
+        placeholder="e.g. 12.5"
+        maxLength={20}
+        onChange={e => {
+          const v = e.target.value.trim();
+          if (!TYPING_RE.test(v)) return;
+          setText(v);
+          onSelect?.(NUMBER_RE.test(v) ? v : null);
+        }}
+        className={`mt-1 block w-full max-w-xs rounded-xl border-2 bg-white px-3 py-3 text-lg font-semibold text-slate-900 outline-none ${tone}`}
+      />
+      {review && (
+        <div className="mt-2 text-sm">
+          {selected === null && <div className="font-semibold text-slate-500">You skipped this question.</div>}
+          <div className="text-emerald-700">
+            Correct answer: <b>{correct}</b>
+            {q.tolerance ? <span> (any value within ± {q.tolerance} is accepted)</span> : null}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface Props {
   q: ExamQuestion;
   selected: string | null;
-  /** Omit for a read-only question (review). */
-  onSelect?: (label: string) => void;
-  /** Review mode: the correct option's label. */
+  /** Omit for a read-only question (review). Gets the new answer, or null when it is cleared. */
+  onSelect?: (value: string | null) => void;
+  /** Review mode: the correct answer (a label, labels like "a,c", or a number). */
   correct?: string;
 }
 
 export default function QuestionView({ q, selected, onSelect, correct }: Props) {
   const [zoom, setZoom] = useState<string | null>(null);
+  const kind = q.kind || 'SCQ';
+  const multi = kind === 'MSQ';
+  const picked = new Set((selected || '').split(',').filter(Boolean));
+  const correctSet = new Set(correct !== undefined && kind !== 'NAT' ? correct.split(',') : []);
+
+  const choose = (label: string) => {
+    if (!onSelect) return;
+    if (!multi) { onSelect(label); return; }
+    const next = new Set(picked);
+    if (next.has(label)) next.delete(label); else next.add(label);
+    onSelect(next.size ? Array.from(next).sort().join(',') : null);
+  };
 
   return (
     <div>
@@ -121,10 +185,14 @@ export default function QuestionView({ q, selected, onSelect, correct }: Props) 
         </div>
       </div>
 
-      <div role="radiogroup" aria-label={`Options for question ${q.no}`} className="mt-4 space-y-2 sm:pl-8">
+      {kind === 'NAT' ? (
+        <NumberAnswer q={q} selected={selected} onSelect={onSelect} correct={correct} />
+      ) : (
+      <div role={multi ? 'group' : 'radiogroup'} aria-label={`Options for question ${q.no}`} className="mt-4 space-y-2 sm:pl-8">
+        {multi && !onSelect ? null : multi && <div className="text-sm font-semibold text-slate-600">More than one option may be correct. Select all that apply.</div>}
         {q.options.map((o, i) => {
-          const isSel = selected === o.label;
-          const isCorrect = correct !== undefined && correct === o.label;
+          const isSel = picked.has(o.label);
+          const isCorrect = correct !== undefined && correctSet.has(o.label);
           const isWrongPick = correct !== undefined && isSel && !isCorrect;
           const tone = isCorrect
             ? 'border-emerald-500 bg-emerald-50'
@@ -146,14 +214,14 @@ export default function QuestionView({ q, selected, onSelect, correct }: Props) 
             <button
               key={o.label}
               type="button"
-              role="radio"
+              role={multi ? 'checkbox' : 'radio'}
               aria-checked={isSel}
               disabled={!onSelect}
-              onClick={() => onSelect?.(o.label)}
+              onClick={() => choose(o.label)}
               className={`flex w-full items-start gap-3 rounded-xl border-2 px-3 py-3 text-left transition-colors disabled:cursor-default ${tone}`}
               style={{ minHeight: 48 }}
             >
-              <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold ${chip}`}>
+              <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center ${multi ? 'rounded-md' : 'rounded-full'} text-sm font-bold ${chip}`}>
                 {String.fromCharCode(97 + i)}
               </span>
               <span className="min-w-0 flex-1 text-base text-slate-900">
@@ -170,12 +238,13 @@ export default function QuestionView({ q, selected, onSelect, correct }: Props) 
                   </span>
                 )}
               </span>
-              {isCorrect && <span className="shrink-0 pt-1 text-xs font-semibold text-emerald-700">Correct</span>}
+              {isCorrect && <span className="shrink-0 pt-1 text-xs font-semibold text-emerald-700">{isSel || !multi ? 'Correct' : 'Missed'}</span>}
               {isWrongPick && <span className="shrink-0 pt-1 text-xs font-semibold text-red-700">Your answer</span>}
             </button>
           );
         })}
       </div>
+      )}
 
       {zoom && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-3" onClick={() => setZoom(null)} role="dialog" aria-label="Enlarged picture">

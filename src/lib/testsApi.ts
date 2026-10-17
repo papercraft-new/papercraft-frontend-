@@ -22,6 +22,7 @@ export interface TestSummary {
   status: 'PUBLISHED' | 'CLOSED';
   totalMarks: number;
   questionCount: number;
+  partialMarking: boolean;
   createdAt: string;
   attempts: number;
   submitted: number;
@@ -37,6 +38,7 @@ export interface PaperCheck {
   title: string;
   usable: number;
   totalQuestions: number;
+  kinds: { scq: number; msq: number; nat: number }; // single-answer, multiple-correct, numerical
   skipped: SkippedQuestion[];
   skippedCount: number;
 }
@@ -55,6 +57,7 @@ export interface PublishTestInput {
   showResult: boolean;
   showAnswers: boolean;
   onePerRoll: boolean;
+  partialMarking?: boolean;
 }
 
 export const testsApi = {
@@ -66,6 +69,12 @@ export const testsApi = {
     apiClient.patch<{ success: boolean; data: TestSummary }>(`/tests/${id}`, data),
   remove: (id: string) => apiClient.delete(`/tests/${id}`),
   results: (id: string) => apiClient.get<{ success: boolean; data: TestResults }>(`/tests/${id}/results`),
+  resetAttempt: (id: string, attemptId: string) => apiClient.post(`/tests/${id}/attempts/${attemptId}/reset`),
+  deleteAttempt: (id: string, attemptId: string) => apiClient.delete(`/tests/${id}/attempts/${attemptId}`),
+  extendAttempt: (id: string, attemptId: string, minutes: number) =>
+    apiClient.post(`/tests/${id}/attempts/${attemptId}/extend`, { minutes }),
+  extendAll: (id: string, minutes: number) =>
+    apiClient.post<{ success: boolean; data: { extended: number } }>(`/tests/${id}/extend-all`, { minutes }),
   resultsCsv: (id: string) => apiClient.get<Blob>(`/tests/${id}/results.csv`, { responseType: 'blob' }),
 };
 
@@ -78,12 +87,14 @@ export function testsError(err: unknown, fallback: string): string {
 // ── Results (step 3) ──────────────────────────────────────────────────
 
 export interface ResultStudent {
+  attemptId: string;
   rank: number;
   name: string;
   rollNo: string;
   score: number;
   correct: number;
   wrong: number;
+  partial: number;
   skipped: number;
   timeTakenSec: number;
   submittedAt: number | null;
@@ -93,12 +104,17 @@ export interface ResultStudent {
 export interface ResultQuestion {
   id: string;
   no: number;
+  kind: 'SCQ' | 'MSQ' | 'NAT';
   section: string;
   text: string;
   correct: string;
+  correctLabels: string[];
+  tolerance: number | null;
+  commonWrong: { value: string; count: number }[];
   marks: number;
   right: number;
   wrong: number;
+  partial: number;
   skipped: number;
   pctRight: number;
   avgTimeSec: number | null;
@@ -115,7 +131,7 @@ export interface TestResults {
   };
   sections: { title: string; questionCount: number; totalMarks: number; average: number }[];
   students: ResultStudent[];
-  stillWriting: { name: string; rollNo: string; startedAt: number; deadlineAt: number; answered: number }[];
+  stillWriting: { attemptId: string; name: string; rollNo: string; startedAt: number; deadlineAt: number; answered: number }[];
   distribution: { label: string; count: number }[];
   questions: ResultQuestion[];
 }

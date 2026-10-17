@@ -48,7 +48,8 @@ export default function ExamRunner({ data, token, clockOffset, onSubmitted, onSe
 
   const [, setTick] = useState(0);
   const offsetRef = useRef(clockOffset);
-  const deadline = data.attempt.deadlineAt;
+  const [deadline, setDeadline] = useState(data.attempt.deadlineAt);
+  const deadlineRef = useRef(data.attempt.deadlineAt);
 
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'offline'>('saved');
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -76,6 +77,14 @@ export default function ExamRunner({ data, token, clockOffset, onSubmitted, onSe
   const enteredAt = useRef(Date.now());
 
   const takeOffset = (o: number | null) => { if (o !== null) offsetRef.current = o; };
+
+  /** The teacher added time (or reset us): follow the server's deadline. */
+  const applyDeadline = useCallback((d?: number) => {
+    if (typeof d !== 'number' || d === deadlineRef.current) return;
+    deadlineRef.current = d;
+    setDeadline(d);
+    if (d - (Date.now() + offsetRef.current) > 0 && !submittingRef.current) autoFired.current = false; // countdown is live again
+  }, []);
 
   const finish = useCallback((r: ResultData) => {
     closed.current = true;
@@ -118,6 +127,7 @@ export default function ExamRunner({ data, token, clockOffset, onSubmitted, onSe
       const p = (async () => {
         const r = await publicTestApi.save(token, body);
         takeOffset(r.offset);
+        applyDeadline(r.data.deadlineAt);
       })();
       inflight.current = p;
       try {
@@ -143,7 +153,7 @@ export default function ExamRunner({ data, token, clockOffset, onSubmitted, onSe
       }
     }
     return true;
-  }, [token, lose, finishFromServer]);
+  }, [token, lose, finishFromServer, applyDeadline]);
 
   const scheduleFlush = useCallback(() => {
     setSaveState(s => (s === 'offline' ? s : 'saving'));
@@ -275,6 +285,25 @@ export default function ExamRunner({ data, token, clockOffset, onSubmitted, onSe
     };
   }, [sendSwitches]);
 
+  // Heartbeat every 15 s: picks up time the teacher added, and a submit the server already did.
+  useEffect(() => {
+    const beat = async () => {
+      if (closed.current) return;
+      try {
+        const r = await publicTestApi.event(token, switchesRef.current);
+        takeOffset(r.offset);
+        sentSwitches.current = Math.max(sentSwitches.current, switchesRef.current);
+        if (r.data.submitted) { void finishFromServer(); return; }
+        applyDeadline(r.data.deadlineAt);
+      } catch (err) {
+        const e = toApiError(err);
+        if (e.status === 401) lose(e.message);
+      }
+    };
+    const id = setInterval(() => { void beat(); }, 15000);
+    return () => clearInterval(id);
+  }, [token, applyDeadline, finishFromServer, lose]);
+
   useEffect(() => {
     const online = () => { void flushNow(); };
     const warn = (e: BeforeUnloadEvent) => { if (!closed.current) { e.preventDefault(); e.returnValue = ''; } };
@@ -368,7 +397,7 @@ export default function ExamRunner({ data, token, clockOffset, onSubmitted, onSe
               <span className="font-semibold text-slate-800">{section.title} · Question {q.no} of {flat.length}</span>
               <span>
                 <span className="font-semibold text-green-700">+{q.marks}</span>
-                {neg > 0 && <span className="ml-2 font-semibold text-red-600">−{neg}</span>}
+                {neg > 0 && q.kind !== 'NAT' && <span className="ml-2 font-semibold text-red-600">−{neg}</span>}
               </span>
             </div>
             {section.description && <div className="mb-3 text-sm italic text-slate-600">{section.description}</div>}
@@ -376,7 +405,7 @@ export default function ExamRunner({ data, token, clockOffset, onSubmitted, onSe
               key={q.id}
               q={q}
               selected={a.selected}
-              onSelect={label => update(q.id, { selected: label, visited: true })}
+              onSelect={value => update(q.id, { selected: value, visited: true })}
             />
             {hint && <div className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{hint}</div>}
           </div>

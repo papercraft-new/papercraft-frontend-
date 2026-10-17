@@ -1282,15 +1282,21 @@ const displayText = cleanedQuestionText || question.text;
                 {/* Correct answer (used by online tests; never printed) */}
                 <button
                   type="button"
-                  role="radio"
+                  role={question.multi ? 'checkbox' : 'radio'}
                   aria-checked={!!opt.isCorrect}
-                  aria-label={`Option ${opt.label.toUpperCase()} is the correct answer`}
-                  title={opt.isCorrect ? 'Correct answer (tap to unmark)' : 'Mark as the correct answer'}
+                  aria-label={`Option ${opt.label.toUpperCase()} is a correct answer`}
+                  title={opt.isCorrect ? 'Correct answer (tap to unmark)' : 'Mark as a correct answer'}
                   onClick={() =>
-                    onUpdate({ options: displayOptions.map((o, j) => ({ ...o, isCorrect: j === i ? !opt.isCorrect : false })) })
+                    onUpdate({
+                      options: displayOptions.map((o, j) =>
+                        question.multi
+                          ? { ...o, isCorrect: j === i ? !opt.isCorrect : !!o.isCorrect } // several may be correct
+                          : { ...o, isCorrect: j === i ? !opt.isCorrect : false }         // only one, as before
+                      ),
+                    })
                   }
                   style={{
-                    width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0, padding: 0, cursor: 'pointer',
+                    width: '28px', height: '28px', borderRadius: question.multi ? '6px' : '50%', flexShrink: 0, padding: 0, cursor: 'pointer',
                     fontSize: '14px', lineHeight: 1, color: '#fff',
                     border: opt.isCorrect ? '1px solid #10b981' : '1px solid #475569',
                     background: opt.isCorrect ? '#10b981' : 'transparent',
@@ -1332,8 +1338,27 @@ const displayText = cleanedQuestionText || question.text;
               </div>
             ))}
           </div>
+          <label style={{ marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#cbd5e1', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={!!question.multi}
+              onChange={e => {
+                const on = e.target.checked;
+                if (on) {
+                  onUpdate({ multi: true });
+                } else {
+                  // back to a single correct answer: keep only the first ticked option
+                  const first = displayOptions.findIndex(o => o.isCorrect);
+                  onUpdate({ multi: false, options: displayOptions.map((o, j) => ({ ...o, isCorrect: j === first })) });
+                }
+              }}
+            />
+            More than one correct answer
+          </label>
           <div style={{ marginTop: '6px', fontSize: '10px', color: '#64748b' }}>
-            Tap the circle in front of the correct option. It is used for online tests and is never printed on the paper.
+            {question.multi
+              ? 'Tap every correct option (squares). It is used for online tests and is never printed on the paper.'
+              : 'Tap the circle in front of the correct option. It is used for online tests and is never printed on the paper.'}
           </div>
           {displayOptions.length < 4 && (
   <button
@@ -1362,6 +1387,36 @@ const displayText = cleanedQuestionText || question.text;
     + Add Option
   </button>
 )}
+        </div>
+      )}
+
+      {question.type === 'NUMERICAL' && (
+        <div style={{ marginTop: '10px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
+            {([
+              ['answer', 'Correct answer', '12.5'],
+              ['tolerance', '± Tolerance (optional)', '0.1'],
+            ] as const).map(([field, label, ph]) => (
+              <label key={field} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#cbd5e1' }}>
+                {label}
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={question.numeric?.[field] ?? ''}
+                  placeholder={ph}
+                  onChange={e => {
+                    const v = e.target.value.trim();
+                    if (!/^-?\d*\.?\d*$/.test(v)) return; // numbers only
+                    onUpdate({ numeric: { answer: question.numeric?.answer ?? '', tolerance: question.numeric?.tolerance, [field]: v } });
+                  }}
+                  style={{ width: '110px', background: 'hsl(222 47% 7%)', border, borderRadius: '6px', padding: '5px 8px', color: '#f1f5f9', fontSize: '12px', outline: 'none' }}
+                />
+              </label>
+            ))}
+          </div>
+          <div style={{ marginTop: '6px', fontSize: '10px', color: '#64748b' }}>
+            Used for online tests and never printed. A student&apos;s number counts as right if it is within the tolerance of the correct answer.
+          </div>
         </div>
       )}
 

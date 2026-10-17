@@ -32,6 +32,118 @@ function Stat({ label, value, sub }: { label: string; value: React.ReactNode; su
   );
 }
 
+type Target =
+  | { kind: 'one'; attemptId: string; name: string; rollNo: string; writing: boolean }
+  | { kind: 'all'; count: number };
+
+/** Exam-day controls: add time, start a student over, or remove an attempt. Each asks before it acts. */
+function ManageDialog({ target, testId, onClose, onDone }: { target: Target; testId: string; onClose: () => void; onDone: () => void }) {
+  const [minutes, setMinutes] = useState(10);
+  const [confirm, setConfirm] = useState<null | 'reset' | 'delete'>(null);
+  const [busy, setBusy] = useState(false);
+  const mins = Math.min(180, Math.max(1, Math.floor(minutes) || 1));
+
+  const run = async (fn: () => Promise<string>) => {
+    setBusy(true);
+    try {
+      toast.success(await fn());
+      onDone();
+      onClose();
+    } catch (err) {
+      toast.error(testsError(err, 'That did not work. Please try again.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const one = target.kind === 'one' ? target : null;
+  const showExtend = target.kind === 'all' || (one && one.writing);
+  const warn: React.CSSProperties = { fontSize: '12px', color: '#fbbf24', background: 'rgba(251,191,36,0.08)', borderRadius: '8px', padding: '8px 10px', marginTop: '8px' };
+
+  return (
+    <div role="dialog" aria-modal="true" onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '420px', maxHeight: '90vh', overflowY: 'auto', background: 'hsl(222 30% 11%)', border: BORDER, borderRadius: '14px', padding: '18px' }}>
+        <div style={{ fontSize: '15px', fontWeight: 800, color: '#f1f5f9' }}>
+          {one ? one.name : `Everyone still writing (${(target as { count: number }).count})`}
+        </div>
+        {one && <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>Roll no. {one.rollNo} · {one.writing ? 'still writing' : 'submitted'}</div>}
+
+        {showExtend && (
+          <div style={{ marginTop: '14px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: '#e2e8f0', marginBottom: '6px' }}>Add time</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+              {[5, 10, 15, 30].map(m => (
+                <button key={m} type="button" onClick={() => setMinutes(m)} style={{ ...btn(minutes === m ? '#fff' : '#cbd5e1', minutes === m ? '#2563eb' : 'hsl(222 30% 14%)', minutes === m ? '1px solid #2563eb' : BORDER) }}>+{m}</button>
+              ))}
+              <input type="number" min={1} max={180} value={minutes} onChange={e => setMinutes(Number(e.target.value))} aria-label="Minutes to add" style={{ width: '70px', minHeight: '34px', padding: '0 8px', borderRadius: '8px', border: BORDER, background: 'hsl(222 30% 12%)', color: '#e2e8f0', fontSize: '12px' }} />
+              <span style={{ fontSize: '12px', color: '#94a3b8' }}>min</span>
+            </div>
+            <button type="button" disabled={busy} onClick={() => run(async () => {
+              if (target.kind === 'all') {
+                const r = await testsApi.extendAll(testId, mins);
+                return r.data.data.extended ? `Added ${mins} min for ${r.data.data.extended} student${r.data.data.extended === 1 ? '' : 's'}.` : 'No one is still writing.';
+              }
+              await testsApi.extendAttempt(testId, target.attemptId, mins);
+              return `Added ${mins} min for ${target.name}.`;
+            })} style={{ ...btn('#fff', '#2563eb', '1px solid #2563eb'), marginTop: '8px', width: '100%' }}>
+              {busy ? 'Working...' : `Add ${mins} minute${mins === 1 ? '' : 's'}`}
+            </button>
+            <div style={{ fontSize: '11px', color: '#64748b', marginTop: '6px' }}>The student&apos;s clock updates within about 15 seconds. Time can go past the test&apos;s closing time.</div>
+          </div>
+        )}
+
+        {one && (
+          <div style={{ marginTop: '16px', borderTop: BORDER, paddingTop: '12px' }}>
+            {confirm === null && (
+              <div style={{ display: 'grid', gap: '8px' }}>
+                <button type="button" style={btn('#fbbf24', 'hsl(222 30% 14%)', '1px solid rgba(251,191,36,0.4)')} onClick={() => setConfirm('reset')}>
+                  Reset attempt (start over)
+                </button>
+                <button type="button" style={btn('#f87171', 'hsl(222 30% 14%)', '1px solid rgba(248,113,113,0.4)')} onClick={() => setConfirm('delete')}>
+                  Delete attempt
+                </button>
+                <div style={{ fontSize: '11px', color: '#64748b' }}>
+                  Reset erases this student&apos;s answers and gives a fresh timer. They open the link and enter the same name and roll number. Delete removes the attempt completely.
+                </div>
+              </div>
+            )}
+            {confirm === 'reset' && (
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9' }}>Reset {one.name}&apos;s attempt?</div>
+                <div style={warn}>
+                  {one.writing ? 'They are writing right now. Their answers will be erased and their screen will stop working.' : 'Their submitted answers and score will be erased.'} They get the full time again.
+                </div>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                  <button type="button" disabled={busy} style={{ ...btn(), flex: 1 }} onClick={() => setConfirm(null)}>Cancel</button>
+                  <button type="button" disabled={busy} style={{ ...btn('#fff', '#d97706', '1px solid #d97706'), flex: 1 }} onClick={() => run(async () => { await testsApi.resetAttempt(testId, one.attemptId); return `${one.name} can start over.`; })}>
+                    {busy ? 'Working...' : 'Yes, reset'}
+                  </button>
+                </div>
+              </div>
+            )}
+            {confirm === 'delete' && (
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9' }}>Delete {one.name}&apos;s attempt?</div>
+                <div style={warn}>
+                  {one.writing ? 'They are writing right now. ' : ''}The attempt, answers and score are removed for good, and this cannot be undone.
+                </div>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                  <button type="button" disabled={busy} style={{ ...btn(), flex: 1 }} onClick={() => setConfirm(null)}>Cancel</button>
+                  <button type="button" disabled={busy} style={{ ...btn('#fff', '#dc2626', '1px solid #dc2626'), flex: 1 }} onClick={() => run(async () => { await testsApi.deleteAttempt(testId, one.attemptId); return 'Attempt deleted.'; })}>
+                    {busy ? 'Working...' : 'Yes, delete'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <button type="button" onClick={onClose} disabled={busy} style={{ ...btn(), marginTop: '14px', width: '100%' }}>Close</button>
+      </div>
+    </div>
+  );
+}
+
 function printSheet(r: TestResults) {
   const secHead = r.sections.length > 1 ? r.sections.map(s => `<th>${esc(s.title)}</th>`).join('') : '';
   const rows = r.students.map(s => `<tr>
@@ -72,6 +184,7 @@ export default function TestResultsPage() {
   const id = String(params?.id || '');
   const [filter, setFilter] = useState('');
   const [downloading, setDownloading] = useState(false);
+  const [target, setTarget] = useState<Target | null>(null);
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ['test-results', id],
@@ -108,6 +221,8 @@ export default function TestResultsPage() {
 
   const maxBin = Math.max(1, ...(data?.distribution.map(b => b.count) ?? [1]));
   const multi = (data?.sections.length ?? 0) > 1;
+  const hasPartial = !!data?.students.some(s => s.partial > 0);
+  const hasPartialQ = !!data?.questions.some(q => q.partial > 0);
 
   return (
     <div style={{ padding: '1.5rem', maxWidth: '1100px', margin: '0 auto' }}>
@@ -194,12 +309,13 @@ export default function TestResultsPage() {
               />
             </div>
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: '640px' }}>
+              <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: '720px' }}>
                 <thead>
                   <tr>
                     <th style={th}>Rank</th><th style={th}>Name</th><th style={th}>Roll no.</th><th style={th}>Score</th>
-                    <th style={th}>Correct</th><th style={th}>Wrong</th><th style={th}>Skipped</th><th style={th}>Time</th><th style={th} title="Times the student left the exam screen">Tab switches</th>
+                    <th style={th}>Correct</th><th style={th}>Wrong</th>{hasPartial && <th style={th}>Partial</th>}<th style={th}>Skipped</th><th style={th}>Time</th><th style={th} title="Times the student left the exam screen">Tab switches</th>
                     {multi && data.sections.map(s => <th key={s.title} style={th}>{s.title}</th>)}
+                    <th style={th}></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -211,14 +327,18 @@ export default function TestResultsPage() {
                       <td style={{ ...td, fontWeight: 700 }}>{s.score}<span style={{ color: '#64748b', fontWeight: 400 }}> / {data.test.totalMarks}</span></td>
                       <td style={{ ...td, color: '#34d399' }}>{s.correct}</td>
                       <td style={{ ...td, color: '#f87171' }}>{s.wrong}</td>
+                      {hasPartial && <td style={{ ...td, color: '#fbbf24' }}>{s.partial}</td>}
                       <td style={td}>{s.skipped}</td>
                       <td style={td}>{mmss(s.timeTakenSec)}</td>
                       <td style={{ ...td, color: s.tabSwitches > 0 ? '#fbbf24' : '#94a3b8', fontWeight: s.tabSwitches > 0 ? 700 : 400 }}>{s.tabSwitches}</td>
                       {multi && s.sections.map((x, si) => <td key={si} style={td}>{x}</td>)}
+                      <td style={td}>
+                        <button type="button" style={btn()} onClick={() => setTarget({ kind: 'one', attemptId: s.attemptId, name: s.name, rollNo: s.rollNo, writing: false })}>Manage</button>
+                      </td>
                     </tr>
                   ))}
                   {students.length === 0 && (
-                    <tr><td colSpan={9} style={{ ...td, color: '#94a3b8', textAlign: 'center' }}>{filter ? 'No student matches.' : 'No submitted attempts yet.'}</td></tr>
+                    <tr><td colSpan={10} style={{ ...td, color: '#94a3b8', textAlign: 'center' }}>{filter ? 'No student matches.' : 'No submitted attempts yet.'}</td></tr>
                   )}
                 </tbody>
               </table>
@@ -227,11 +347,17 @@ export default function TestResultsPage() {
 
           {data.stillWriting.length > 0 && (
             <div style={{ ...CARD, marginBottom: '16px' }}>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9', marginBottom: '6px' }}>Still writing ({data.stillWriting.length})</div>
-              <div style={{ display: 'grid', gap: '4px' }}>
-                {data.stillWriting.map((s, i) => (
-                  <div key={`${s.rollNo}-${i}`} style={{ fontSize: '12px', color: '#cbd5e1' }}>
-                    {s.name} · {s.rollNo} · {s.answered} answered · ends {new Date(s.deadlineAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <div style={{ flex: '1 1 140px', fontSize: '13px', fontWeight: 700, color: '#f1f5f9' }}>Still writing ({data.stillWriting.length})</div>
+                <button type="button" style={btn()} onClick={() => setTarget({ kind: 'all', count: data.stillWriting.length })}>Extend time for everyone</button>
+              </div>
+              <div style={{ display: 'grid', gap: '6px' }}>
+                {data.stillWriting.map(s => (
+                  <div key={s.attemptId} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#cbd5e1' }}>
+                    <span style={{ flex: '1 1 200px', overflowWrap: 'anywhere' }}>
+                      {s.name} · {s.rollNo} · {s.answered} answered · ends {new Date(s.deadlineAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                    </span>
+                    <button type="button" style={btn()} onClick={() => setTarget({ kind: 'one', attemptId: s.attemptId, name: s.name, rollNo: s.rollNo, writing: true })}>Manage</button>
                   </div>
                 ))}
               </div>
@@ -241,24 +367,29 @@ export default function TestResultsPage() {
 
           <div style={{ ...CARD }}>
             <div style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9', marginBottom: '2px' }}>Question analysis</div>
-            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '8px' }}>Based on the {data.summary.submitted} submitted attempt{data.summary.submitted === 1 ? '' : 's'}. The correct option is in green.</div>
+            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '8px' }}>Based on the {data.summary.submitted} submitted attempt{data.summary.submitted === 1 ? '' : 's'}. Correct options are in green. For multiple-correct questions each student&apos;s ticked options are counted.</div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: '760px' }}>
                 <thead>
                   <tr>
                     <th style={th}>Q</th>{multi && <th style={th}>Section</th>}<th style={th}>Question</th>
-                    <th style={th}>Right</th><th style={th}>Wrong</th><th style={th}>Skipped</th><th style={th}>% right</th>
+                    <th style={th}>Right</th><th style={th}>Wrong</th>{hasPartialQ && <th style={th}>Partial</th>}<th style={th}>Skipped</th><th style={th}>% right</th>
                     <th style={th}>Avg time</th><th style={th}>Picked (a, b, c…)</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.questions.map(q => (
                     <tr key={q.id}>
-                      <td style={{ ...td, fontWeight: 700 }}>{q.no}</td>
+                      <td style={{ ...td, fontWeight: 700 }}>
+                        {q.no}
+                        {q.kind === 'MSQ' && <div style={{ fontSize: '9px', fontWeight: 600, color: '#a78bfa' }}>multi</div>}
+                        {q.kind === 'NAT' && <div style={{ fontSize: '9px', fontWeight: 600, color: '#38bdf8' }}>number</div>}
+                      </td>
                       {multi && <td style={td}>{q.section}</td>}
                       <td style={{ ...td, minWidth: '220px', overflowWrap: 'anywhere' }}>{q.text || '(picture question)'}</td>
                       <td style={{ ...td, color: '#34d399' }}>{q.right}</td>
                       <td style={{ ...td, color: '#f87171' }}>{q.wrong}</td>
+                      {hasPartialQ && <td style={{ ...td, color: '#fbbf24' }}>{q.partial}</td>}
                       <td style={td}>{q.skipped}</td>
                       <td style={td}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -270,11 +401,22 @@ export default function TestResultsPage() {
                       </td>
                       <td style={td}>{q.avgTimeSec === null ? '-' : mmss(q.avgTimeSec)}</td>
                       <td style={td}>
-                        {Object.entries(q.options).map(([label, n]) => (
-                          <span key={label} style={{ marginRight: '8px', fontWeight: label === q.correct ? 800 : 400, color: label === q.correct ? '#34d399' : '#cbd5e1' }}>
-                            {label}:{n}
-                          </span>
-                        ))}
+                        {q.kind === 'NAT' ? (
+                          <div>
+                            <span style={{ color: '#34d399', fontWeight: 800 }}>Answer {q.correct}{q.tolerance ? ` ± ${q.tolerance}` : ''}</span>
+                            {q.commonWrong.length > 0 && (
+                              <div style={{ color: '#94a3b8', marginTop: '2px' }}>
+                                Common wrong: {q.commonWrong.map(w => `${w.value} (×${w.count})`).join(', ')}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          Object.entries(q.options).map(([label, n]) => (
+                            <span key={label} style={{ marginRight: '8px', fontWeight: q.correctLabels.includes(label) ? 800 : 400, color: q.correctLabels.includes(label) ? '#34d399' : '#cbd5e1' }}>
+                              {label}:{n}
+                            </span>
+                          ))
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -282,6 +424,7 @@ export default function TestResultsPage() {
               </table>
             </div>
           </div>
+          {target && <ManageDialog target={target} testId={id} onClose={() => setTarget(null)} onDone={() => refetch()} />}
         </>
       )}
     </div>

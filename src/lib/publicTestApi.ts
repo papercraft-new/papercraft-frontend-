@@ -24,16 +24,21 @@ export interface ExamImage {
 }
 export interface ExamTable { rows: string[][]; headerRow?: boolean }
 export interface ExamOption { label: string; text: string; image?: ExamImage }
+export type QuestionKind = 'SCQ' | 'MSQ' | 'NAT'; // single answer, multiple correct, numerical
+
 export interface ExamQuestion {
   id: string;
   no: number;
+  kind?: QuestionKind;
   text: string;
   marks: number;
   options: ExamOption[];
   images?: ExamImage[];
   tables?: ExamTable[];
-  /** Only present in the review after submit, and only when the teacher turned answers on. */
+  /** Only present in the review after submit, and only when the teacher turned answers on.
+   *  Single answer: the label. Multiple correct: labels like "a,c". Numerical: the number. */
   correct?: string;
+  tolerance?: number; // numerical review only
 }
 export interface ExamSection { id: string; title: string; description?: string; questions: ExamQuestion[] }
 export interface AnswerState { selected: string | null; marked: boolean; visited: boolean; t: number }
@@ -82,6 +87,7 @@ export interface ResultData {
   totalMarks?: number;
   correct?: number;
   wrong?: number;
+  partial?: number;
   skipped?: number;
   negativeMarks?: number;
   timeTakenSec?: number | null;
@@ -129,12 +135,12 @@ export const publicTestApi = {
     call<{ token: string; resumed: boolean }>({ method: 'post', url: `/${encodeURIComponent(code)}/start`, data: { name, rollNo } }),
   load: (token: string) => call<LoadResponse>({ method: 'get', url: '/attempt', headers: auth(token) }),
   save: (token: string, answers: Record<string, AnswerState>) =>
-    call<{ ok: boolean }>({ method: 'put', url: '/attempt/answers', data: { answers }, headers: auth(token) }),
+    call<{ ok: boolean; deadlineAt?: number }>({ method: 'put', url: '/attempt/answers', data: { answers }, headers: auth(token) }),
   submit: (token: string, answers: Record<string, AnswerState>, tabSwitches = 0) =>
     call<ResultData>({ method: 'post', url: '/attempt/submit', data: { answers, tabSwitches }, headers: auth(token), timeout: 30000 }),
-  /** How many times the student has left the exam screen so far (the server keeps the highest value). */
+  /** Reports tab switches (the server keeps the highest value). Also the heartbeat: it returns the current deadline. */
   event: (token: string, tabSwitches: number) =>
-    call<{ ok: boolean }>({ method: 'post', url: '/attempt/event', data: { tabSwitches }, headers: auth(token) }),
+    call<{ ok: boolean; submitted?: boolean; deadlineAt?: number }>({ method: 'post', url: '/attempt/event', data: { tabSwitches }, headers: auth(token) }),
   result: (token: string) => call<ResultData>({ method: 'get', url: '/attempt/result', headers: auth(token) }),
 };
 

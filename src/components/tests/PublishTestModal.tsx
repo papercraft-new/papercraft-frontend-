@@ -119,6 +119,7 @@ export function PublishTestModal({ paper, onClose }: Props) {
   const [showResult, setShowResult] = useState(true);
   const [showAnswers, setShowAnswers] = useState(false);
   const [onePerRoll, setOnePerRoll] = useState(true);
+  const [partialMarking, setPartialMarking] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -160,6 +161,7 @@ export function PublishTestModal({ paper, onClose }: Props) {
         showResult,
         showAnswers: showResult && showAnswers,
         onePerRoll,
+        partialMarking: partialMarking && (check?.kinds.msq ?? 0) > 0,
       });
       setCreated(res.data.data);
       queryClient.invalidateQueries({ queryKey: ['tests'] });
@@ -224,9 +226,14 @@ export function PublishTestModal({ paper, onClose }: Props) {
                 }}
               >
                 <b>{check.usable} of {check.totalQuestions} questions</b> can be asked online.
+                {check.usable > 0 && (
+                  <div style={{ marginTop: '2px', fontSize: '11px', opacity: 0.85 }}>
+                    {check.kinds.scq} single-answer · {check.kinds.msq} multiple-correct · {check.kinds.nat} numerical
+                  </div>
+                )}
                 {noQuestions && (
                   <div style={{ color: '#fca5a5', marginTop: '4px' }}>
-                    Online tests use multiple-choice questions with exactly one correct option marked. Open the paper in the builder and tick the correct option on each MCQ.
+                    Online tests use multiple-choice questions with the correct option ticked (turn on "More than one correct answer" for several), and numerical questions with an answer set. Open the paper in the builder to add them.
                   </div>
                 )}
                 {check.skippedCount > 0 && (
@@ -279,6 +286,7 @@ export function PublishTestModal({ paper, onClose }: Props) {
               {toggle('Shuffle the order of questions', shuffleQuestions, setShuffleQuestions)}
               {toggle('Shuffle the options of each question', shuffleOptions, setShuffleOptions)}
               {toggle('One attempt per roll number', onePerRoll, setOnePerRoll)}
+              {(check?.kinds.msq ?? 0) > 0 && toggle('Partial marks for multiple-correct questions', partialMarking, setPartialMarking)}
               {toggle('Show the score to the student at the end', showResult, v => { setShowResult(v); if (!v) setShowAnswers(false); })}
               {toggle('Also show the correct answers', showAnswers, setShowAnswers, !showResult)}
             </div>

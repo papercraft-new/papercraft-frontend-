@@ -29,8 +29,9 @@ export default function ExamResult({ result }: { result: ResultData }) {
               <div className="mt-5 text-5xl font-extrabold tabular-nums">
                 {result.score}<span className="text-2xl font-semibold text-slate-500"> / {result.totalMarks}</span>
               </div>
-              <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+              <div className={`mt-4 grid gap-2 text-sm ${result.partial ? 'grid-cols-4' : 'grid-cols-3'}`}>
                 <div className="rounded-lg bg-green-50 p-3"><div className="text-xl font-bold text-green-700">{result.correct}</div>Correct</div>
+                {!!result.partial && <div className="rounded-lg bg-amber-50 p-3"><div className="text-xl font-bold text-amber-700">{result.partial}</div>Partial</div>}
                 <div className="rounded-lg bg-red-50 p-3"><div className="text-xl font-bold text-red-700">{result.wrong}</div>Wrong</div>
                 <div className="rounded-lg bg-slate-100 p-3"><div className="text-xl font-bold text-slate-700">{result.skipped}</div>Skipped</div>
               </div>
@@ -55,7 +56,7 @@ export default function ExamResult({ result }: { result: ResultData }) {
                     return (
                       <div key={q.id} className="rounded-xl bg-white p-4 shadow-sm">
                         <QuestionView q={q} selected={sel} correct={q.correct} />
-                        {!sel && <div className="mt-3 text-sm font-semibold text-slate-500">You skipped this question.</div>}
+                        {!sel && q.kind !== 'NAT' && <div className="mt-3 text-sm font-semibold text-slate-500">You skipped this question.</div>}
                       </div>
                     );
                   })}
