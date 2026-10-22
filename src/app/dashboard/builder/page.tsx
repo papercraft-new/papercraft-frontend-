@@ -235,8 +235,19 @@ const [tempPaperName, setTempPaperName] = useState('');
 
     toast.error('Save response invalid.');
     return null;
-  } catch {
-    toast.error('Failed to save.');
+  } catch (err) {
+    // The shared API client already shows its own message for 401, 403, 429 and server errors.
+    // For everything else, say what the server actually said instead of a bare "Failed to save."
+    const e = err as { response?: { status?: number; data?: { error?: string; message?: string; errors?: Array<{ msg?: string }> } } };
+    const status = e.response?.status;
+    if (!e.response) {
+      toast.error('Could not reach the server. Check your internet and try again. Your paper is still open here.', { duration: 6000 });
+    } else if (status === 413) {
+      toast.error('This paper is too large to save. Remove some big pictures or split it into two papers.', { duration: 8000 });
+    } else if (status !== 401 && status !== 403 && status !== 429 && !(status && status >= 500)) {
+      const reason = e.response.data?.error || e.response.data?.errors?.[0]?.msg || e.response.data?.message;
+      toast.error(reason ? `Could not save: ${reason}` : 'Failed to save.', { duration: 8000 });
+    }
     return null;
   } finally {
     setIsSaving(false);
