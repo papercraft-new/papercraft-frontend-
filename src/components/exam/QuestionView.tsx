@@ -16,14 +16,17 @@ const KEEP = /(<\/?(?:b|i|u|em|strong|sub|sup)>|<br\s*\/?>)/gi;
 function escPlain(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+// Line breaks are turned into <br> here, on the plain-text pieces only. They must NOT be replaced in the
+// finished HTML: KaTeX draws a square root with an SVG path whose data contains line breaks, and a <br>
+// inside it destroys the drawing (the root sign and its bar disappear).
 function escKeepTags(s: string): string {
   return s
     .split(KEEP)
-    .map((part, i) => (i % 2 === 1 ? part.toLowerCase().replace(/<br\s*\/?>/, '<br>') : escPlain(part)))
+    .map((part, i) => (i % 2 === 1 ? part.toLowerCase().replace(/<br\s*\/?>/, '<br>') : escPlain(part).replace(/\r?\n/g, '<br>')))
     .join('');
 }
 export function questionHtml(text: string): string {
-  return mathToHtml(text || '', escKeepTags).replace(/\n/g, '<br>');
+  return mathToHtml(text || '', escKeepTags);
 }
 
 function safeSrc(url: unknown): string {
