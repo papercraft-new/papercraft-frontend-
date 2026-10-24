@@ -29,10 +29,22 @@ interface ProcessStep {
   status: StepStatus;
 }
 
+/** What the server did with an answer key found in the upload (see services/answerKey.ts). */
+interface AnswerKeySummary {
+  found: boolean;
+  entries: number;
+  ticked: number;
+  total: number;
+  notTicked: Array<{ section: string; no: number | null; reason: string }>;
+  notTickedCount: number;
+  note?: string;
+}
+
 interface UploadedFileItem {
   file: File;
   status: FileStatus;
   questionsFound?: number;
+  keyAnswers?: number; // answers read from an answer key in this file
   error?: string;
 }
 
@@ -56,6 +68,7 @@ export default function UploadPage() {
     sectionsFound: number;
     filesSucceeded: number;
     filesFailed: number;
+    answerKey?: AnswerKeySummary;
   } | null>(null);
   const [activeTab, setActiveTab] = useState<'file' | 'text'>('file');
 
@@ -96,7 +109,8 @@ export default function UploadPage() {
       sectionsFound: number;
       filesSucceeded?: number;
       filesFailed?: number;
-      results?: Array<{ filename: string; success: boolean; questionsFound: number; error?: string }>;
+      answerKey?: AnswerKeySummary;
+      results?: Array<{ filename: string; success: boolean; questionsFound: number; answerKeyEntries?: number; error?: string }>;
     }>
   ) => {
     setIsProcessing(true);
@@ -122,7 +136,7 @@ export default function UploadPage() {
           const m = data.results!.find(r => r.filename === item.file.name);
           if (!m) return item;
           return m.success
-            ? { ...item, status: 'done',  questionsFound: m.questionsFound }
+            ? { ...item, status: 'done',  questionsFound: m.questionsFound, keyAnswers: m.answerKeyEntries }
             : { ...item, status: 'error', error: m.error };
         }));
       }
@@ -132,6 +146,7 @@ export default function UploadPage() {
         sectionsFound:  data.sectionsFound,
         filesSucceeded: data.filesSucceeded ?? 1,
         filesFailed:    data.filesFailed    ?? 0,
+        answerKey:      data.answerKey,
       });
       // Smart extraction also returns where each diagram sits: cut them out of the originals and attach them
       const attached = await attachFigures(data.sections, (done, total) =>
@@ -145,6 +160,13 @@ export default function UploadPage() {
         ? `Extracted ${data.questionsFound} questions (${data.filesFailed} file(s) failed)`
         : `Extracted ${data.questionsFound} questions from ${data.sectionsFound} sections!`;
       data.filesFailed ? toast.error(msg) : toast.success(msg);
+
+      // An answer key in the upload: the right options are already ticked in the builder
+      const ak = data.answerKey;
+      if (ak?.found) {
+        if (ak.ticked > 0) toast.success(`Answer key found: ticked ${ak.ticked} of ${ak.total} answers.`, { duration: 6000 });
+        if (ak.note) toast(ak.note, { duration: 9000 });
+      }
 
     } catch (err: unknown) {
       timers.forEach(clearTimeout);
@@ -425,7 +447,11 @@ export default function UploadPage() {
                             <p className="text-[11px] text-muted-foreground">
                               {(item.file.size / 1024).toFixed(0)} KB
                               {item.status === 'done'  && item.questionsFound !== undefined && (
-                                <span className="text-green-400 ml-2">· {item.questionsFound} questions</span>
+                                <span className="text-green-400 ml-2">
+                                  {item.questionsFound === 0 && item.keyAnswers
+                                    ? `· answer key (${item.keyAnswers} answers)`
+                                    : `· ${item.questionsFound} questions${item.keyAnswers ? ' · answer key found' : ''}`}
+                                </span>
                               )}
                               {item.status === 'error' && item.error && (
                                 <span className="text-red-400 ml-2">· {item.error}</span>
@@ -572,6 +598,28 @@ export default function UploadPage() {
                           )}
                           . Ready to edit in Paper Builder.
                         </p>
+                        {result.answerKey?.found && (
+                          <div className="mt-1.5 text-[12px] text-muted-foreground">
+                            <span className="font-medium text-foreground">Answer key:</span> ticked{' '}
+                            <strong className="text-foreground">{result.answerKey.ticked}</strong> of {result.answerKey.total} answers.
+                            {result.answerKey.note && <span className="text-yellow-400"> {result.answerKey.note}</span>}
+                            {result.answerKey.notTickedCount > 0 && (
+                              <details className="mt-1">
+                                <summary className="cursor-pointer text-yellow-400">
+                                  {result.answerKey.notTickedCount} not ticked. Tick these in the builder.
+                                </summary>
+                                <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                                  {result.answerKey.notTicked.map((n, i) => (
+                                    <li key={i}>{n.section} Q{n.no ?? '?'}: {n.reason}</li>
+                                  ))}
+                                </ul>
+                                {result.answerKey.notTickedCount > result.answerKey.notTicked.length && (
+                                  <div className="mt-1">and {result.answerKey.notTickedCount - result.answerKey.notTicked.length} more.</div>
+                                )}
+                              </details>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline" onClick={() => router.push('/dashboard/builder')} className="gap-1.5">
