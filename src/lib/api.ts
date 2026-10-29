@@ -246,6 +246,7 @@ export const adminApi = {
   getUserReferrals: (id: string) => apiClient.get(`/admin/users/${id}/referrals`),
   getActivity: () => apiClient.get('/admin/activity'),
   getOcrStats: () => apiClient.get('/admin/ocr-stats'),
+  getEngagement: () => apiClient.get('/admin/engagement'),
 };
 
 // ─────────────────────────────────────────

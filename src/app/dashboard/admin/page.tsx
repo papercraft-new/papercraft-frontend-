@@ -5,8 +5,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { adminApi, apiClient } from '@/lib/api';
 import toast from 'react-hot-toast';
+import EngagementTab from '@/components/admin/EngagementTab';
 
-type AdminTab = 'overview' | 'users' | 'papers' | 'ocr' | 'revenue' | 'logs' | 'settings';
+type AdminTab = 'engagement' | 'overview' | 'users' | 'papers' | 'ocr' | 'revenue' | 'logs' | 'settings';
 
 function formatDate(d: string) {
   if (!d) return '—';
@@ -101,7 +102,7 @@ export default function AdminPage() {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
 
-  const [tab, setTab] = useState<AdminTab>('overview');
+  const [tab, setTab] = useState<AdminTab>('engagement');
   const [userSearch, setUserSearch] = useState('');
   const [userPage, setUserPage] = useState(1);
   const [pendingUserAction, setPendingUserAction] = useState<{ userId: string; action: string } | null>(null);
@@ -333,6 +334,7 @@ export default function AdminPage() {
 
       <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', marginBottom: '1.5rem', paddingBottom: '4px' }}>
         {([
+          { id: 'engagement', icon: '🎯', label: 'Engagement' },
           { id: 'overview', icon: '📊', label: 'Overview' },
           { id: 'users', icon: '👥', label: 'Users' },
           { id: 'papers', icon: '📄', label: 'Papers' },
@@ -346,6 +348,8 @@ export default function AdminPage() {
           </button>
         ))}
       </div>
+
+      {tab === 'engagement' && <EngagementTab />}
 
       {tab === 'overview' && (
         <div>
