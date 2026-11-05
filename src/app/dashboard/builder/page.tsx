@@ -13,6 +13,7 @@ import { EquationHelper } from '@/components/builder/EquationHelper';
 import { MatchEditor } from '@/components/builder/MatchEditor';
 import { AddQuestionModal } from '@/components/builder/AddQuestionModal';
 import toast from 'react-hot-toast';
+import { PublishTestModal } from '@/components/tests/PublishTestModal';
 import { downloadHtmlAsPdf } from '@/lib/pdfExport';
 import { buildPaperHtml, normalizeOptions, splitOptions } from '@/lib/paperRenderer';
 import type { MCQOption } from '@/lib/paperRenderer';
@@ -161,6 +162,7 @@ export default function BuilderPage() {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [isExporting, setIsExporting] = useState(false);
   const [showPaperName, setShowPaperName] = useState(false);
+  const [showPublishTest, setShowPublishTest] = useState(false);
 const [tempPaperName, setTempPaperName] = useState('');
 
   useEffect(() => {
@@ -870,6 +872,47 @@ const [tempPaperName, setTempPaperName] = useState('');
                 <br />
                 Export it or go back to make changes.
               </p>
+              {paperId && (
+                <div style={{ marginBottom: '18px' }}>
+                  <button
+                    onClick={() => setShowPublishTest(true)}
+                    style={{
+                      position: 'relative',
+                      width: '100%',
+                      padding: '14px 18px',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(251,191,36,0.6)',
+                      background: 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)',
+                      color: '#fff',
+                      fontSize: '15px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      boxShadow: '0 0 0 4px rgba(245,158,11,0.15), 0 8px 24px rgba(234,88,12,0.35)',
+                    }}
+                  >
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: '-9px',
+                        right: '12px',
+                        background: '#22c55e',
+                        color: '#fff',
+                        fontSize: '10px',
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        borderRadius: '999px',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      NEW
+                    </span>
+                    🖥️ Convert to Online Test
+                    <div style={{ fontSize: '11px', fontWeight: 500, opacity: 0.9, marginTop: '3px' }}>
+                      Share a link — students answer on their phone or computer, results are auto-graded
+                    </div>
+                  </button>
+                </div>
+              )}
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
                 <button style={btn('default')} onClick={handleExportDocx} disabled={isExporting}>
                   📄 Download DOCX
@@ -890,6 +933,12 @@ const [tempPaperName, setTempPaperName] = useState('');
       </div>
 
       {showExamDetails && <ExamDetailsModal onClose={handleDetailsClose} />}
+      {showPublishTest && paperId && (
+        <PublishTestModal
+          paper={{ id: paperId, title: title || 'Untitled Paper' }}
+          onClose={() => setShowPublishTest(false)}
+        />
+      )}
       {showPaperName && (
   <div
     style={{
@@ -1090,6 +1139,37 @@ function SectionEditor({
                 color: '#f1f5f9', fontSize: '13px', fontWeight: 700, padding: 0,
               }}
             />
+          </div>
+          {/* Type for all questions in this section (options, tables etc. are kept, so it can be switched back) */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '5px',
+            background: 'rgba(59,130,246,0.08)',
+            border: '1px solid rgba(59,130,246,0.18)',
+            borderRadius: '8px', padding: '4px 8px',
+          }}>
+            <span style={{ fontSize: '10px', color: '#64748b', whiteSpace: 'nowrap' }}>Type</span>
+            <select
+              value={
+                section.questions.length > 0 && section.questions.every(q => q.type === section.questions[0].type)
+                  ? section.questions[0].type
+                  : ''
+              }
+              onClick={e => e.stopPropagation()}
+              onChange={e => {
+                const type = e.target.value as Question['type'];
+                if (!type) return;
+                onUpdate({ questions: section.questions.map(q => ({ ...q, type })) });
+              }}
+              style={{
+                background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer',
+                color: '#f1f5f9', fontSize: '12px', fontWeight: 700, padding: 0, maxWidth: '120px',
+              }}
+            >
+              <option value="" disabled style={{ color: '#000' }}>Mixed</option>
+              {QUESTION_TYPES.map(t => (
+                <option key={t} value={t} style={{ color: '#000' }}>{t.replace(/_/g, ' ')}</option>
+              ))}
+            </select>
           </div>
           <button
             onClick={e => { e.stopPropagation(); onAddQuestion(); }}
