@@ -39,6 +39,7 @@ export interface PaperCheck {
   usable: number;
   totalQuestions: number;
   kinds: { scq: number; msq: number; nat: number }; // single-answer, multiple-correct, numerical
+  sections?: { id: string; title: string; count: number }[]; // sections that will be in the test
   skipped: SkippedQuestion[];
   skippedCount: number;
 }
@@ -58,6 +59,7 @@ export interface PublishTestInput {
   showAnswers: boolean;
   onePerRoll: boolean;
   partialMarking?: boolean;
+  sectionRules?: { sectionId: string; negativeMarks?: number; attemptAny?: number }[];
 }
 
 export const testsApi = {

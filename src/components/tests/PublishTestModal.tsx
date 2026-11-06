@@ -122,6 +122,7 @@ export function PublishTestModal({ paper, onClose }: Props) {
   const [showAnswers, setShowAnswers] = useState(false);
   const [onePerRoll, setOnePerRoll] = useState(true);
   const [partialMarking, setPartialMarking] = useState(false);
+  const [secRules, setSecRules] = useState<Record<string, { neg: string; any: string }>>({});
 
   const runCheck = (first = false) => {
     let alive = true;
@@ -149,6 +150,24 @@ export function PublishTestModal({ paper, onClose }: Props) {
     if (opensAt && closesAt && new Date(closesAt) <= new Date(opensAt)) return toast.error('The end time must be after the start time.');
     if (closesAt && new Date(closesAt) <= new Date()) return toast.error('The end time is already past.');
 
+    const sectionRules: { sectionId: string; negativeMarks?: number; attemptAny?: number }[] = [];
+    for (const sec of check?.sections || []) {
+      const r = secRules[sec.id];
+      if (!r) continue;
+      const rule: { sectionId: string; negativeMarks?: number; attemptAny?: number } = { sectionId: sec.id };
+      if (r.neg.trim() !== '') {
+        const n = Number(r.neg);
+        if (!(n >= 0 && n <= 10)) return toast.error(`${sec.title}: negative marks must be 0 to 10.`);
+        rule.negativeMarks = n;
+      }
+      if (r.any.trim() !== '') {
+        const n = Number(r.any);
+        if (!Number.isInteger(n) || n < 1) return toast.error(`${sec.title}: "attempt any" must be a whole number, 1 or more.`);
+        if (n < sec.count) rule.attemptAny = n; // N equal to or above the question count changes nothing
+      }
+      if (rule.negativeMarks !== undefined || rule.attemptAny !== undefined) sectionRules.push(rule);
+    }
+
     setSubmitting(true);
     try {
       const res = await testsApi.create({
@@ -166,6 +185,7 @@ export function PublishTestModal({ paper, onClose }: Props) {
         showAnswers: showResult && showAnswers,
         onePerRoll,
         partialMarking: partialMarking && (check?.kinds.msq ?? 0) > 0,
+        ...(sectionRules.length ? { sectionRules } : {}),
       });
       setCreated(res.data.data);
       queryClient.invalidateQueries({ queryKey: ['tests'] });
@@ -312,6 +332,43 @@ export function PublishTestModal({ paper, onClose }: Props) {
               {toggle('Show the score to the student at the end', showResult, v => { setShowResult(v); if (!v) setShowAnswers(false); })}
               {toggle('Also show the correct answers', showAnswers, setShowAnswers, !showResult)}
             </div>
+
+
+            {check && check.sections && check.sections.length > 0 && (
+              <details style={{ marginTop: '14px', border: BORDER, borderRadius: '10px', padding: '10px 12px' }}>
+                <summary style={{ cursor: 'pointer', fontSize: '13px', fontWeight: 700, color: '#e2e8f0' }}>
+                  Section rules <span style={{ fontWeight: 400, color: '#64748b' }}>(optional)</span>
+                </summary>
+                <div style={{ fontSize: '11px', color: '#64748b', margin: '8px 0' }}>
+                  Leave blank to use the test&apos;s negative marks and let students answer every question. Numerical questions never lose marks.
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {check.sections.map(sec => {
+                    const r = secRules[sec.id] || { neg: '', any: '' };
+                    const set = (patch: Partial<{ neg: string; any: string }>) => setSecRules(prev => ({ ...prev, [sec.id]: { ...r, ...patch } }));
+                    const anyN = Number(r.any);
+                    return (
+                      <div key={sec.id} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px', alignItems: 'end' }}>
+                        <div style={{ gridColumn: '1 / -1', fontSize: '12px', fontWeight: 600, color: '#cbd5e1' }}>
+                          {sec.title} <span style={{ color: '#64748b', fontWeight: 400 }}>· {sec.count} questions</span>
+                        </div>
+                        <div>
+                          <label style={label}>Negative marks per wrong answer</label>
+                          <input style={input} type="number" min={0} max={10} step="0.25" placeholder={`Same as test (${negativeMarks || 0})`} value={r.neg} onChange={e => set({ neg: e.target.value })} />
+                        </div>
+                        <div>
+                          <label style={label}>Attempt any (of {sec.count})</label>
+                          <input style={input} type="number" min={1} step="1" placeholder="All" value={r.any} onChange={e => set({ any: e.target.value })} />
+                          {r.any.trim() !== '' && Number.isInteger(anyN) && anyN >= sec.count && (
+                            <div style={{ fontSize: '11px', color: '#fbbf24', marginTop: '3px' }}>No limit: this is not below {sec.count}.</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </details>
+            )}
 
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '14px' }}>
               <button type="button" style={btn()} onClick={onClose}>Cancel</button>

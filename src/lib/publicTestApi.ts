@@ -40,7 +40,7 @@ export interface ExamQuestion {
   correct?: string;
   tolerance?: number; // numerical review only
 }
-export interface ExamSection { id: string; title: string; description?: string; questions: ExamQuestion[] }
+export interface ExamSection { id: string; title: string; description?: string; negativeMarks?: number; attemptAny?: number; questions: ExamQuestion[] }
 export interface AnswerState { selected: string | null; marked: boolean; visited: boolean; t: number }
 
 export type TestState = 'open' | 'not_open' | 'closed' | 'ended';

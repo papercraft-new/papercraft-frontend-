@@ -338,10 +338,16 @@ export default function ExamRunner({ data, token, clockOffset, onSubmitted, onSe
     });
     return { title: s.title, total: s.questions.length, ...c };
   });
-  const unanswered = flat.filter(f => !answers[f.q.id]?.selected).length;
+  // "Attempt any N" sections only need N answers, so only the missing ones count as unanswered
+  const unanswered = data.sections.reduce((sum, s) => {
+    const done = s.questions.filter(x => answers[x.id]?.selected).length;
+    const need = s.attemptAny && s.attemptAny < s.questions.length ? s.attemptAny : s.questions.length;
+    return sum + Math.max(0, need - done);
+  }, 0);
 
   const firstIndexOf = (si: number) => flat.findIndex(f => f.si === si);
-  const neg = data.test.negativeMarks;
+  const neg = section.negativeMarks ?? data.test.negativeMarks;
+  const answeredInSection = section.questions.filter(x => answers[x.id]?.selected).length;
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-slate-100 text-slate-900">
@@ -401,11 +407,23 @@ export default function ExamRunner({ data, token, clockOffset, onSubmitted, onSe
               </span>
             </div>
             {section.description && <div className="mb-3 text-sm italic text-slate-600">{section.description}</div>}
+            {section.attemptAny && section.attemptAny < section.questions.length && (
+              <div className={`mb-3 rounded-lg px-3 py-2 text-sm font-semibold ${answeredInSection >= section.attemptAny ? 'bg-green-50 text-green-800' : 'bg-blue-50 text-blue-800'}`}>
+                Attempt any {section.attemptAny} of {section.questions.length} questions in this section · answered {Math.min(answeredInSection, section.attemptAny)} of {section.attemptAny}
+              </div>
+            )}
             <QuestionView
               key={q.id}
               q={q}
               selected={a.selected}
-              onSelect={value => update(q.id, { selected: value, visited: true })}
+              onSelect={value => {
+                const cap = section.attemptAny;
+                if (cap && cap < section.questions.length && value && !a.selected && answeredInSection >= cap) {
+                  setHint(`You can answer only ${cap} questions in this section. Clear one of your answers first to answer this one.`);
+                  return;
+                }
+                update(q.id, { selected: value, visited: true });
+              }}
             />
             {hint && <div className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{hint}</div>}
           </div>
