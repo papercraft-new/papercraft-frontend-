@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { papersApi } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import FirstPaperCard from '@/components/onboarding/FirstPaperCard';
 
 const quickActions = [
   { href: '/dashboard/upload', label: '📤 Upload & OCR', desc: 'Upload handwritten or scanned files' },
@@ -79,6 +80,9 @@ export default function DashboardPage() {
           </button>
         </Link>
       </div>
+
+      {/* FIRST-PAPER ONBOARDING: only for users with no papers yet */}
+      {!isLoading && totalPapers === 0 && <FirstPaperCard />}
 
       {/* STAT CARDS */}
       <div className="overview-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>

@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import QRCode from 'qrcode';
 import { testsApi, testsError } from '@/lib/testsApi';
 import type { PaperCheck, TestSummary } from '@/lib/testsApi';
+import { AnswerKeyReview } from './AnswerKeyReview';
 
 const BORDER = '1px solid hsl(217 33% 18%)';
 
@@ -106,6 +107,7 @@ export function PublishTestModal({ paper, onClose }: Props) {
   const [checkError, setCheckError] = useState('');
   const [created, setCreated] = useState<TestSummary | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
 
   const [title, setTitle] = useState(paper.title || 'Online Test');
   const [instructions, setInstructions] = useState('');
@@ -121,7 +123,7 @@ export function PublishTestModal({ paper, onClose }: Props) {
   const [onePerRoll, setOnePerRoll] = useState(true);
   const [partialMarking, setPartialMarking] = useState(false);
 
-  useEffect(() => {
+  const runCheck = (first = false) => {
     let alive = true;
     testsApi
       .check(paper.id)
@@ -129,11 +131,13 @@ export function PublishTestModal({ paper, onClose }: Props) {
         if (!alive) return;
         const c = res.data.data;
         setCheck(c);
-        setDurationMin(String(Math.max(10, Math.ceil(c.usable * 1.2)))); // about 1.2 minutes a question
+        if (first) setDurationMin(String(Math.max(10, Math.ceil(c.usable * 1.2)))); // about 1.2 minutes a question
       })
       .catch(err => alive && setCheckError(testsError(err, 'Could not check this paper.')));
     return () => { alive = false; };
-  }, [paper.id]);
+  };
+
+  useEffect(() => runCheck(true), [paper.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const publish = async () => {
     const duration = Number(durationMin);
@@ -195,7 +199,7 @@ export function PublishTestModal({ paper, onClose }: Props) {
       <div style={{ width: 'min(580px, 100%)', maxHeight: '92vh', overflowY: 'auto', background: 'hsl(222 47% 11%)', border: BORDER, borderRadius: '14px', padding: '18px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
           <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#f1f5f9', margin: 0 }}>
-            {created ? 'Test published' : 'Publish as online test'}
+            {created ? 'Test published' : reviewing ? 'Check the answers' : 'Publish as online test'}
           </h2>
           <button type="button" aria-label="Close" onClick={onClose} style={{ ...btn(), width: '38px', padding: 0 }}>×</button>
         </div>
@@ -211,6 +215,12 @@ export function PublishTestModal({ paper, onClose }: Props) {
               <button type="button" style={btn(true)} onClick={() => router.push('/dashboard/tests')}>Go to My Tests</button>
             </div>
           </>
+        ) : reviewing ? (
+          <AnswerKeyReview
+            paperId={paper.id}
+            onBack={() => setReviewing(false)}
+            onSaved={() => { setReviewing(false); setCheck(null); runCheck(); }}
+          />
         ) : (
           <>
             {/* WHAT WILL BE INCLUDED */}
@@ -247,6 +257,18 @@ export function PublishTestModal({ paper, onClose }: Props) {
                     </ul>
                   </details>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setReviewing(true)}
+                  style={{
+                    ...btn(check.skippedCount > 0 || check.usable === 0), marginTop: '10px', width: '100%',
+                    ...(check.skippedCount > 0 || check.usable === 0
+                      ? { background: '#d97706', border: '1px solid #f59e0b', color: '#fff' }
+                      : {}),
+                  }}
+                >
+                  ✅ Check &amp; correct the answers{check.skippedCount > 0 ? ` (${check.skippedCount} need attention)` : ''}
+                </button>
               </div>
             )}
 
