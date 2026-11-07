@@ -142,6 +142,16 @@ export const imagesApi = {
 };
 
 // ─────────────────────────────────────────
+// INSTITUTE PROFILE (name, address, board, logo shown on every paper)
+// ─────────────────────────────────────────
+
+export const instituteApi = {
+  get: () => apiClient.get('/users/institution'),
+  save: (data: { name: string; address?: string; affiliation?: string; logoUrl?: string }) =>
+    apiClient.put('/users/institution', data),
+};
+
+// ─────────────────────────────────────────
 // OCR API
 // ─────────────────────────────────────────
 

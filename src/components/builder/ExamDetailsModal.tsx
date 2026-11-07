@@ -1,6 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import { instituteApi } from '@/lib/api';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -80,6 +83,7 @@ export function ExamDetailsModal({ onClose }: ExamDetailsModalProps) {
     register,
     control,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ExamFormData>({
     resolver: zodResolver(examSchema),
@@ -97,12 +101,26 @@ export function ExamDetailsModal({ onClose }: ExamDetailsModalProps) {
     },
   });
 
+  // Institute profile: when one is saved, the header (name, address, logo) comes from it and is locked
+  const { data: instResp } = useQuery({ queryKey: ['institute'], queryFn: () => instituteApi.get(), staleTime: 60 * 1000 });
+  const institute = instResp?.data?.data?.institution || null;
+  useEffect(() => {
+    if (institute?.name) setValue('institutionName', institute.name, { shouldValidate: true });
+  }, [institute?.name, setValue]);
+
   const onSubmit = (data: ExamFormData) => {
     const { instructionsText, ...rest } = data;
 
     setExamDetails({
       ...examDetails,
       ...rest,
+      ...(institute
+        ? {
+            institutionName: institute.name,
+            institutionAddress: institute.address || undefined,
+            logoUrl: institute.logoUrl || undefined,
+          }
+        : {}),
       ...(writingSpaceTouched ? { answerLines: writingSpace ? ('two' as const) : ('none' as const) } : {}),
       instructions: showInstructions
         ? (instructionsText || '')
@@ -152,8 +170,24 @@ export function ExamDetailsModal({ onClose }: ExamDetailsModalProps) {
                 {...register('institutionName')}
                 placeholder="e.g. Delhi Public School, Hyderabad"
                 className="h-11"
+                readOnly={!!institute}
+                style={institute ? { opacity: 0.75, cursor: 'not-allowed' } : undefined}
               />
               <FieldError message={errors.institutionName?.message} />
+              <p className="mt-1 text-xs text-muted-foreground">
+                {institute ? (
+                  <>
+                    🔒 Locked to your Institute Profile (name, address and logo are the same on every paper).{' '}
+                    <Link href="/dashboard/institute" className="underline">Change it there</Link>
+                  </>
+                ) : (
+                  <>
+                    Tip: set up an{' '}
+                    <Link href="/dashboard/institute" className="underline">Institute Profile</Link>{' '}
+                    to add your logo and keep this header the same on every paper.
+                  </>
+                )}
+              </p>
             </div>
 
             <div>
